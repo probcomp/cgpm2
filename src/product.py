@@ -72,6 +72,12 @@ class Product(CGPM):
         model.rowid_to_cgpm = dict(metadata['rowid_to_cgpm'])
         return model
 
+    def render(self):
+        return [
+            'Product',
+            ['cgpms=', [cgpm.render() for cgpm in self.cgpms]]
+        ]
+
 def validate_cgpms_product(cgpms):
     # Check all outputs are disjoint.
     outputs_list = it.chain(cgpm.outputs for cgpm in cgpms)

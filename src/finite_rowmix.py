@@ -216,6 +216,13 @@ class FiniteRowMixture(CGPM):
         model.cgpm_components_array = cgpm_components_array
         return model
 
+    def render(self):
+        return [
+            'FiniteRowMixture',
+            ['cgpm_row_divide=', self.cgpm_row_divide.render()],
+            ['cgpm_components=', self.cgpm_components_array.render()],
+        ]
+
     # Helpers
 
     def _simulate_one(self, rowid, targets, constraints, inputs, N, component):

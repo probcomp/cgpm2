@@ -71,6 +71,14 @@ class FlexibleArray(CGPM):
         model.rowid_to_index = dict(metadata['rowid_to_index'])
         return model
 
+    def render(self):
+        return [
+            'FlexibleArray',
+            ['outputs=', self.outputs],
+            ['inputs=', self.inputs],
+            ['cgpms=', [(i,cgpm.render()) for i,cgpm in self.cgpms.iteritems()]]
+        ]
+
     # Internal
 
     def get_cgpm(self, i_select):

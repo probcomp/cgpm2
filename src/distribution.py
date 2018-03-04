@@ -76,6 +76,17 @@ class DistributionCGPM(CGPM):
         """Return a dictionary of distribution arguments."""
         raise NotImplementedError
 
+    def render(self):
+        """Return an AST-like representation of the CGPM."""
+        return [
+            self.name(),
+            ['outputs=', self.outputs],
+            ['inputs=', self.inputs],
+            ['distargs=', self.get_distargs()],
+            ['params=', self.get_params()],
+            ['hypers=', self.get_hypers()],
+        ]
+
     @staticmethod
     def construct_hyper_grids(X, n_grid=20):
         """Return dictionary, where grids['hyper'] is a list of

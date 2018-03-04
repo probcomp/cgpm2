@@ -57,3 +57,11 @@ class FlexibleRowMixture(FiniteRowMixture):
         model.rowid_to_component = dict(metadata['rowid_to_component'])
         model.cgpm_components_array = cgpm_components_array
         return model
+
+    def render(self):
+        return [
+            'FlexibleRowMixture',
+            ['cgpm_row_divide=', self.cgpm_row_divide.render()],
+            ['cgpm_base=', self.cgpm_components_base.render()],
+            ['cgpm_components=', self.cgpm_components_array.render()],
+        ]

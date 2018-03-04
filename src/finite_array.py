@@ -65,3 +65,9 @@ class FiniteArray(CGPM):
         model = cls(cgpms, metadata['indexer'], rng)
         model.rowid_to_index = dict(metadata['rowid_to_index'])
         return model
+
+    def render(self):
+        return [
+            'FiniteArray',
+            ['cgpms=', [cgpm.render() for cgpm in self.cgpms]]
+        ]
