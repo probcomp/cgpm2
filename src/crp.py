@@ -57,6 +57,9 @@ class CRP(DistributionCGPM):
         assert not constraints
         assert targets.keys() == self.outputs
         x = int(targets[self.outputs[0]])
+        if x not in self.support():
+            # TODO: Optimize this computation by caching valid tables.
+            return float('-inf')
         if rowid not in self.data:
             return calc_predictive_logp(x, self.N, self.counts, self.alpha)
         elif self.data[rowid] == x:
