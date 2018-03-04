@@ -18,6 +18,8 @@ from .icgpm import CGPM
 class Product(CGPM):
 
     def __init__(self, cgpms, rng=None):
+        # Assertions.
+        validate_cgpms_product(cgpms)
         # From constructor.
         self.cgpms = flatten_cgpms(cgpms, Product)
         self.rng = rng or get_prng()
@@ -81,11 +83,11 @@ class Product(CGPM):
 
 def validate_cgpms_product(cgpms):
     # Check all outputs are disjoint.
-    outputs_list = it.chain(cgpm.outputs for cgpm in cgpms)
+    outputs_list = list(it.chain(*(cgpm.outputs for cgpm in cgpms)))
     outputs_set = set(outputs_list)
     assert len(outputs_list) == len(outputs_set)
     # Check no input is an output of another cgpm.
-    inputs_list = it.chain(cgpm.inputs for cgpm in cgpms)
+    inputs_list = list(it.chain(*(cgpm.inputs for cgpm in cgpms)))
     assert all([c not in outputs_set for c in inputs_list])
 
 def merge_samples(samples):
