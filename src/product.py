@@ -10,16 +10,17 @@ from cgpm.utils.general import flatten_cgpms
 from cgpm.utils.general import get_intersection
 from cgpm.utils.general import mergedl
 from cgpm.utils.general import lchain
+from cgpm.utils.general import get_prng
 
 from .icgpm import CGPM
 
 
 class Product(CGPM):
 
-    def __init__(self, cgpms, rng):
+    def __init__(self, cgpms, rng=None):
         # From constructor.
         self.cgpms = flatten_cgpms(cgpms, Product)
-        self.rng = rng
+        self.rng = rng or get_prng()
         # Derived attributes.
         self.outputs = lchain(*[cgpm.outputs for cgpm in self.cgpms])
         self.inputs = lchain(*[cgpm.inputs for cgpm in self.cgpms])

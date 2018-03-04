@@ -8,19 +8,20 @@ import importlib
 import numpy as np
 
 from cgpm.utils.general import get_intersection
+from cgpm.utils.general import get_prng
 from cgpm.utils.general import lchain
 from cgpm.utils.general import log_normalize
 from cgpm.utils.general import log_pflip
 from cgpm.utils.general import logsumexp
 from cgpm.utils.general import merged
 
-from .icgpm import CGPM
 from .finite_array import FiniteArray
+from .icgpm import CGPM
 
 
 class FiniteRowMixture(CGPM):
 
-    def __init__(self, cgpm_row_divide, cgpm_components, rng):
+    def __init__(self, cgpm_row_divide, cgpm_components, rng=None):
         # Assertions.
         assert len(cgpm_row_divide.outputs) == 1
         assert isinstance(cgpm_components, (list, tuple))
@@ -28,7 +29,7 @@ class FiniteRowMixture(CGPM):
         # From constructor.
         self.cgpm_row_divide = cgpm_row_divide
         self.cgpm_components = cgpm_components
-        self.rng = rng
+        self.rng = rng or get_prng()
         # Derived attributes.
         self.outputs_z = self.cgpm_row_divide.outputs
         self.outputs_x = self.cgpm_components[0].outputs

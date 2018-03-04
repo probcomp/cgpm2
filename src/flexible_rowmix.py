@@ -5,21 +5,22 @@
 
 import importlib
 
+from cgpm.utils.general import get_prng
 from cgpm.utils.general import lchain
 
-from .flexible_array import FlexibleArray
 from .finite_rowmix import FiniteRowMixture
+from .flexible_array import FlexibleArray
 
 
 class FlexibleRowMixture(FiniteRowMixture):
 
-    def __init__(self, cgpm_row_divide, cgpm_components_base, rng):
+    def __init__(self, cgpm_row_divide, cgpm_components_base, rng=None):
         # Assertions.
         assert len(cgpm_row_divide.outputs) == 1
         # From constructor.
         self.cgpm_row_divide = cgpm_row_divide
         self.cgpm_components_base = cgpm_components_base
-        self.rng = rng
+        self.rng = rng or get_prng()
         # Derived attributes.
         self.outputs_z = self.cgpm_row_divide.outputs
         self.outputs_x = self.cgpm_components_base.outputs
