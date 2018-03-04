@@ -12,10 +12,10 @@ from cgpm.utils.general import mergedl
 from cgpm.utils.general import lchain
 from cgpm.utils.general import get_prng
 
-from .icgpm import CGPM
+from .chain import Chain
 
 
-class Product(CGPM):
+class Product(Chain):
 
     def __init__(self, cgpms, rng=None):
         # Assertions.
@@ -38,20 +38,6 @@ class Product(CGPM):
         logps = [logpdf_one(cgpm, rowid, targets, constraints, inputs)
             for cgpm in self.cgpms]
         return sum(logps)
-
-    def incorporate(self, rowid, observation, inputs=None):
-        for i, cgpm in enumerate(self.cgpms):
-            incorporated = incorporate_one(cgpm, rowid, observation, inputs)
-            if incorporated:
-                if rowid not in self.rowid_to_cgpm:
-                    self.rowid_to_cgpm[rowid] = []
-                self.rowid_to_cgpm[rowid].append(i)
-
-    def unincorporate(self, rowid):
-        if rowid in self.rowid_to_cgpm:
-            for i in self.rowid_to_cgpm[rowid]:
-                self.cgpms[i].unincorporate(rowid)
-            del self.rowid_to_cgpm[rowid]
 
     def transition(self, **kwargs):
         return
@@ -80,6 +66,7 @@ class Product(CGPM):
             'Product',
             ['cgpms=', [cgpm.render() for cgpm in self.cgpms]]
         ]
+
 
 def validate_cgpms_product(cgpms):
     # Check all outputs are disjoint.
@@ -114,11 +101,3 @@ def logpdf_one(cgpm, rowid, targets, constraints, inputs):
     constraints_cgpm = get_intersection(cgpm.outputs, constraints)
     inputs_cgpm = get_intersection(cgpm.inputs, inputs)
     return cgpm.logpdf(rowid, targets_cgpm, constraints_cgpm, inputs_cgpm)
-
-def incorporate_one(cgpm, rowid, observation, inputs):
-    observation_cgpm = get_intersection(cgpm.outputs, observation)
-    if not observation_cgpm:
-        return None
-    inputs_cgpm = get_intersection(cgpm.inputs, inputs)
-    cgpm.incorporate(rowid, observation_cgpm, inputs_cgpm)
-    return True
