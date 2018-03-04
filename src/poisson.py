@@ -28,6 +28,7 @@ class Poisson(DistributionCGPM):
         # From constructor.
         self.outputs = list(outputs)
         self.inputs = list(inputs)
+        self.params = params
         self.rng = rng or get_prng()
         # Internal attributes.
         self.data = OrderedDict()
@@ -114,7 +115,7 @@ class Poisson(DistributionCGPM):
         return {'a': self.a, 'b': self.b}
 
     def get_params(self):
-        return {}
+        return self.params
 
     def get_suffstats(self):
         return {'N': self.N, 'sum_x' : self.sum_x,

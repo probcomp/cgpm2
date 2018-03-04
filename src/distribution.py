@@ -85,6 +85,7 @@ class DistributionCGPM(CGPM):
             ['distargs=', self.get_distargs()],
             ['params=', self.get_params()],
             ['hypers=', self.get_hypers()],
+            ['suffstats=', self.get_suffstats()],
         ]
 
     @staticmethod

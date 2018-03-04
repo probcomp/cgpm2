@@ -27,6 +27,7 @@ class CRP(DistributionCGPM):
         # From constructor.
         self.outputs = list(outputs)
         self.inputs = list(inputs)
+        self.params = params
         self.rng = rng or get_prng()
         # Internal attributes.
         self.data = OrderedDict()
@@ -116,7 +117,7 @@ class CRP(DistributionCGPM):
         return {'alpha': self.alpha}
 
     def get_params(self):
-        return {}
+        return self.params
 
     def get_suffstats(self):
         return {'N': self.N, 'counts': list(self.counts)}
