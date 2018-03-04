@@ -12,13 +12,12 @@ from scipy.special import gammaln
 
 from cgpm.utils.general import get_prng
 from cgpm.utils.general import log_linspace
-from cgpm.utils.general import pflip
 from cgpm.utils.general import simulate_many
 
 from .distribution import DistributionCGPM
 
 
-class Categorical(DistributionCGPM):
+class Poisson(DistributionCGPM):
 
     def __init__(self, outputs, inputs, hypers=None, params=None,
             distargs=None, rng=None):
@@ -29,67 +28,75 @@ class Categorical(DistributionCGPM):
         # From constructor.
         self.outputs = list(outputs)
         self.inputs = list(inputs)
-        self.k = int(distargs['k'])
         self.rng = rng or get_prng()
         # Internal attributes.
         self.data = OrderedDict()
         self.N = 0
-        self.counts = np.zeros(self.k)
-        self.alpha = hypers.get('alpha', 1)
+        self.sum_x = 0
+        self.sum_log_fact_x = 0
+        self.a = hypers.get('a', 1.)
+        self.b = hypers.get('b', 1.)
+        assert self.a > 0
+        assert self.b > 0
 
     def incorporate(self, rowid, observation, inputs=None):
         DistributionCGPM.incorporate(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
-        if not (x % 1 == 0 and 0 <= x < self.k):
-            raise ValueError('Invalid Categorical(%d): %s' % (self.k, x))
-        x = int(x)
+        if not (x % 1 == 0 and x >= 0):
+            raise ValueError('Invalid Poisson: %s' % str(x))
         self.N += 1
-        self.counts[x] += 1
+        self.sum_x += x
+        self.sum_log_fact_x += gammaln(x+1)
         self.data[rowid] = x
 
     def unincorporate(self, rowid):
         x = self.data.pop(rowid)
         self.N -= 1
-        self.counts[x] -= 1
+        self.sum_x -= x
+        self.sum_log_fact_x -= gammaln(x+1)
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         DistributionCGPM.logpdf(self, rowid, targets, constraints, inputs)
         x = targets[self.outputs[0]]
-        if not (x % 1 == 0 and 0 <= x < self.k):
+        if not (x % 1 == 0 and x >= 0):
             return -float('inf')
-        return calc_predictive_logp(int(x), self.N, self.counts, self.alpha)
+        return calc_predictive_logp(x, self.N, self.sum_x, self.a, self.b)
 
     @simulate_many
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         DistributionCGPM.simulate(self, rowid, targets, constraints, inputs, N)
         if rowid in self.data:
             return {self.outputs[0]: self.data[rowid]}
-        x = pflip(self.counts + self.alpha, rng=self.rng)
+        an, bn = posterior_hypers(self.N, self.sum_x, self.a, self.b)
+        x = self.rng.negative_binomial(an, bn/(bn+1.))
         return {self.outputs[0]: x}
 
     def logpdf_score(self):
-        return calc_logpdf_marginal(self.N, self.counts, self.alpha)
+        return calc_logpdf_marginal(self.N, self.sum_x, self.sum_log_fact_x,
+            self.a, self.b)
 
     def to_metadata(self):
         metadata = dict()
         metadata['outputs'] = self.outputs
         metadata['inputs'] = self.inputs
-        metadata['k'] = self.k
         metadata['N'] = self.N
         metadata['data'] = self.data.items()
-        metadata['counts'] = list(self.counts)
-        metadata['alpha'] = self.alpha
-        metadata['factory'] = ('cgpm2.categorical', 'Categorical')
+        metadata['sum_x'] = self.sum_x
+        metadata['sum_log_fact_x'] = self.sum_log_fact_x
+        metadata['a'] = self.a
+        metadata['b'] = self.b
+        metadata['factory'] = ('cgpm2.poisson', 'Poisson')
         return metadata
 
     @classmethod
     def from_metadata(cls, metadata, rng):
-        model = cls(metadata['outputs'], metadata['inputs'],
-            distargs={'k': metadata['k']}, rng=rng)
+        model = cls(metadata['outputs'], metadata['inputs'], rng=rng)
         model.data = OrderedDict(metadata['data'])
         model.N = metadata['N']
-        model.counts = np.array(metadata['counts'])
-        model.alpha = metadata['alpha']
+        model.sum_x = metadata['sum_x']
+        model.sum_log_fact_x = metadata['sum_log_fact_x']
+        model.a = metadata['a']
+        model.b = metadata['b']
         return model
 
     # DistributionCGPM methods.
@@ -98,33 +105,36 @@ class Categorical(DistributionCGPM):
         return
 
     def set_hypers(self, hypers):
-        assert hypers['alpha'] > 0
-        self.alpha = hypers['alpha']
+        assert hypers['a'] > 0
+        assert hypers['b'] > 0
+        self.a = hypers['a']
+        self.b = hypers['b']
 
     def get_hypers(self):
-        return {'alpha': self.alpha}
+        return {'a': self.a, 'b': self.b}
 
     def get_params(self):
         return {}
 
     def get_suffstats(self):
-        return {'N' : self.N, 'counts' : list(self.counts)}
+        return {'N': self.N, 'sum_x' : self.sum_x,
+            'sum_log_fact_x': self.sum_log_fact_x}
 
     def get_distargs(self):
-        return {'k': self.k}
-
-    def support(self):
-        return range(self.k)
+        return {}
 
     @staticmethod
     def construct_hyper_grids(X, n_grid=30):
         grids = dict()
-        grids['alpha'] = log_linspace(1., float(len(X)), n_grid)
+        # Only use integers for a so we can nicely draw from a negative binomial
+        # in predictive_draw
+        grids['a'] = np.unique(np.round(np.linspace(1, len(X), n_grid)))
+        grids['b'] = log_linspace(.1, float(len(X)), n_grid)
         return grids
 
     @staticmethod
     def name():
-        return 'categorical'
+        return 'poisson'
 
     @staticmethod
     def is_collapsed():
@@ -140,24 +150,27 @@ class Categorical(DistributionCGPM):
 
     @staticmethod
     def is_numeric():
-        return False
-
-    ##################
-    # HELPER METHODS #
-    ##################
-
-    @staticmethod
-    def validate(x, K):
-        return int(x) == float(x) and 0 <= x < K
+        return True
 
 
-def calc_predictive_logp(x, N, counts, alpha):
-    numer = log(alpha + counts[x])
-    denom = log(np.sum(counts) + alpha * len(counts))
-    return numer - denom
+def calc_log_Z(a, b):
+    Z =  gammaln(a) - a*log(b)
+    return Z
 
-def calc_logpdf_marginal(N, counts, alpha):
-    K = len(counts)
-    A = K * alpha
-    lg = sum(gammaln(counts[k] + alpha) for k in xrange(K))
-    return gammaln(A) - gammaln(A+N) + lg - K * gammaln(alpha)
+def posterior_hypers(N, sum_x, a, b):
+    an = a + sum_x
+    bn = b + N
+    return an, bn
+
+def calc_predictive_logp(x, N, sum_x, a, b):
+    an, bn = posterior_hypers(N, sum_x, a, b)
+    am, bm = posterior_hypers(N+1, sum_x+x, a, b)
+    ZN = calc_log_Z(an, bn)
+    ZM = calc_log_Z(am, bm)
+    return  ZM - ZN - gammaln(x+1)
+
+def calc_logpdf_marginal(N, sum_x, sum_log_fact_x, a, b):
+    an, bn = posterior_hypers(N, sum_x, a, b)
+    Z0 = calc_log_Z(a, b)
+    ZN = calc_log_Z(an, bn)
+    return ZN - Z0 - sum_log_fact_x

@@ -94,8 +94,8 @@ class CRP(DistributionCGPM):
     @classmethod
     def from_metadata(cls, metadata, rng):
         model = cls(metadata['outputs'], metadata['inputs'], rng=rng)
-        model.N = metadata['N']
         model.data = OrderedDict(metadata['data'])
+        model.N = metadata['N']
         model.counts = OrderedDict(metadata['counts'])
         model.alpha = metadata['alpha']
         return model

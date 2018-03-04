@@ -34,8 +34,8 @@ class Normal(DistributionCGPM):
         self.inputs = list(inputs)
         self.rng = rng or get_prng()
         # Internal attributes.
-        self.N = 0
         self.data = OrderedDict()
+        self.N = 0
         self.sum_x = 0
         self.sum_x_sq = 0
         self.m = hypers.get('m', 0.)
@@ -99,8 +99,8 @@ class Normal(DistributionCGPM):
     @classmethod
     def from_metadata(cls, metadata, rng):
         model = cls(metadata['outputs'], metadata['inputs'], rng=rng)
-        model.N = metadata['N']
         model.data = OrderedDict(metadata['data'])
+        model.N = metadata['N']
         model.sum_x = metadata['sum_x']
         model.sum_x_sq = metadata['sum_x_sq']
         model.m = metadata['m']
