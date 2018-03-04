@@ -26,13 +26,13 @@ class Product(CGPM):
         # Internal attributes.
         self.rowid_to_cgpm = {}
 
-    def simulate(self, rowid, query, constraints=None, inputs=None, N=None):
-        samples = [simulate_one(cgpm, rowid, query, constraints, inputs, N)
+    def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
+        samples = [simulate_one(cgpm, rowid, targets, constraints, inputs, N)
             for cgpm in self.cgpms]
         return merge_samples(samples)
 
-    def logpdf(self, rowid, query, constraints=None, inputs=None):
-        logps = [logpdf_one(cgpm, rowid, query, constraints, inputs)
+    def logpdf(self, rowid, targets, constraints=None, inputs=None):
+        logps = [logpdf_one(cgpm, rowid, targets, constraints, inputs)
             for cgpm in self.cgpms]
         return sum(logps)
 
@@ -90,21 +90,21 @@ def merge_samples(samples):
     else:
         assert False, 'Unknown samples return type'
 
-def simulate_one(cgpm, rowid, query, constraints, inputs, N=None):
-    query_cgpm = get_intersection(cgpm.outputs, query)
-    if not query_cgpm:
+def simulate_one(cgpm, rowid, targets, constraints, inputs, N=None):
+    targets_cgpm = get_intersection(cgpm.outputs, targets)
+    if not targets_cgpm:
         return {} if N is None else [{}]*N
     constraints_cgpm = get_intersection(cgpm.outputs, constraints)
     inputs_cgpm = get_intersection(cgpm.inputs, inputs)
-    return cgpm.simulate(rowid, query_cgpm, constraints_cgpm, inputs_cgpm, N)
+    return cgpm.simulate(rowid, targets_cgpm, constraints_cgpm, inputs_cgpm, N)
 
-def logpdf_one(cgpm, rowid, query, constraints, inputs):
-    query_cgpm = get_intersection(cgpm.outputs, query)
-    if not query_cgpm:
+def logpdf_one(cgpm, rowid, targets, constraints, inputs):
+    targets_cgpm = get_intersection(cgpm.outputs, targets)
+    if not targets_cgpm:
         return 0
     constraints_cgpm = get_intersection(cgpm.outputs, constraints)
     inputs_cgpm = get_intersection(cgpm.inputs, inputs)
-    return cgpm.logpdf(rowid, query_cgpm, constraints_cgpm, inputs_cgpm)
+    return cgpm.logpdf(rowid, targets_cgpm, constraints_cgpm, inputs_cgpm)
 
 def incorporate_one(cgpm, rowid, observation, inputs):
     observation_cgpm = get_intersection(cgpm.outputs, observation)
