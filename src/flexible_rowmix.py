@@ -19,13 +19,12 @@ class FlexibleRowMixture(FiniteRowMixture):
         assert len(cgpm_row_divide.outputs) == 1
         # From constructor.
         self.cgpm_row_divide = cgpm_row_divide
-        self.cgpm_components_base = cgpm_components_base
         self.rng = rng or get_prng()
         # Derived attributes.
-        self.outputs_z = self.cgpm_row_divide.outputs
-        self.outputs_x = self.cgpm_components_base.outputs
-        self.inputs_z = self.cgpm_row_divide.inputs
-        self.inputs_x = self.cgpm_components_base.inputs
+        self.outputs_z = cgpm_row_divide.outputs
+        self.inputs_z = cgpm_row_divide.inputs
+        self.outputs_x = cgpm_components_base.outputs
+        self.inputs_x = cgpm_components_base.inputs
         self.outputs = lchain(self.outputs_z, self.outputs_x)
         self.inputs = lchain(self.inputs_z, self.inputs_x)
         self.indexer = self.outputs[0]
@@ -33,7 +32,7 @@ class FlexibleRowMixture(FiniteRowMixture):
         self.indexer = self.outputs[0]
         self.rowid_to_component = {}
         self.cgpm_components_array = FlexibleArray(
-            self.cgpm_components_base, self.indexer, self.rng)
+            cgpm_components_base, self.indexer, self.rng)
 
     def to_metadata(self):
         metadata = dict()

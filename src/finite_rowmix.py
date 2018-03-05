@@ -28,20 +28,19 @@ class FiniteRowMixture(CGPM):
         assert range(len(cgpm_components)) == cgpm_row_divide.support()
         # From constructor.
         self.cgpm_row_divide = cgpm_row_divide
-        self.cgpm_components = cgpm_components
         self.rng = rng or get_prng()
         # Derived attributes.
-        self.outputs_z = self.cgpm_row_divide.outputs
-        self.outputs_x = self.cgpm_components[0].outputs
-        self.inputs_z = self.cgpm_row_divide.inputs
-        self.inputs_x = self.cgpm_components[0].inputs
+        self.outputs_z = cgpm_row_divide.outputs
+        self.inputs_z = cgpm_row_divide.inputs
+        self.outputs_x = cgpm_components[0].outputs
+        self.inputs_x = cgpm_components[0].inputs
         self.outputs = lchain(self.outputs_z, self.outputs_x)
         self.inputs = lchain(self.inputs_z, self.inputs_x)
         self.indexer = self.outputs[0]
         # Internal attributes.
         self.rowid_to_component = {}
         self.cgpm_components_array = FiniteArray(
-            self.cgpm_components, self.indexer, self.rng)
+            cgpm_components, self.indexer, self.rng)
 
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         # from IPython.core.debugger import Tracer; Tracer()()
