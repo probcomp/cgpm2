@@ -39,7 +39,7 @@ class FlexibleRowMixture(FiniteRowMixture):
         metadata['cgpm_row_divide'] = self.cgpm_row_divide.to_metadata()
         metadata['cgpm_components_array'] = \
             self.cgpm_components_array.to_metadata()
-        metadata['rowid_to_cgpm'] = self.rowid_to_cgpm.items()
+        metadata['rowid_to_component'] = self.rowid_to_component.items()
         metadata['factory'] = ('cgpm.compositors.flexible_rowmix',
             'FlexibleRowMixture')
         return metadata
