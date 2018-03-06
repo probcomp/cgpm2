@@ -3,7 +3,6 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-import importlib
 import itertools
 
 from math import isinf
@@ -15,6 +14,7 @@ from cgpm.network.helpers import retrieve_variable_to_cgpm
 from cgpm.network.helpers import topological_sort
 from cgpm.network.helpers import validate_cgpms
 
+from cgpm.utils.general import build_cgpm
 from cgpm.utils.general import flatten_cgpms
 from cgpm.utils.general import get_intersection
 from cgpm.utils.general import get_prng
@@ -113,12 +113,7 @@ class Chain(CGPM):
 
     @classmethod
     def from_metadata(cls, metadata, rng):
-        def build_cgpm(blob):
-            modname, attrname = blob['factory']
-            module = importlib.import_module(modname)
-            builder = getattr(module, attrname)
-            return builder.from_metadata(blob, rng)
-        cgpms = [build_cgpm(blob) for blob in metadata['cgpms']]
+        cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
         model = cls(cgpms, accuracy=metadata['accuracy'], rng=rng)
         model.rowid_to_cgpm = dict(metadata['rowid_to_cgpm'])
         return model

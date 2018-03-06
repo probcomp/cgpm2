@@ -5,6 +5,7 @@
 
 import importlib
 
+from cgpm.utils.general import build_cgpm
 from cgpm.utils.general import get_prng
 
 from .icgpm import CGPM
@@ -61,14 +62,9 @@ class FlexibleArray(CGPM):
 
     @classmethod
     def from_metadata(cls, metadata, rng):
-        def build_cgpm(blob):
-            modname, attrname = blob['factory']
-            module = importlib.import_module(modname)
-            builder = getattr(module, attrname)
-            return builder.from_metadata(blob, rng)
-        cgpm_base = build_cgpm(metadata['cgpm_base'])
+        cgpm_base = build_cgpm(metadata['cgpm_base'], rng)
         model = cls(cgpm_base, metadata['indexer'], rng)
-        model.cgpms = {i: build_cgpm(blob) for i, blob in metadata['cgpms']}
+        model.cgpms = {i: build_cgpm(blob, rng) for i,blob in metadata['cgpms']}
         model.rowid_to_index = dict(metadata['rowid_to_index'])
         return model
 

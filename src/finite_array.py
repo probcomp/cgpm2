@@ -3,7 +3,7 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-import importlib
+from cgpm.utils.general import build_cgpm
 
 from .icgpm import CGPM
 
@@ -56,12 +56,7 @@ class FiniteArray(CGPM):
 
     @classmethod
     def from_metadata(cls, metadata, rng):
-        def build_cgpm(blob):
-            modname, attrname = blob['factory']
-            module = importlib.import_module(modname)
-            builder = getattr(module, attrname)
-            return builder.from_metadata(blob, rng)
-        cgpms = [build_cgpm(blob) for blob in metadata['cgpms']]
+        cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
         model = cls(cgpms, metadata['indexer'], rng)
         model.rowid_to_index = dict(metadata['rowid_to_index'])
         return model

@@ -3,14 +3,14 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-import importlib
 import itertools as it
 
+from cgpm.utils.general import build_cgpm
 from cgpm.utils.general import flatten_cgpms
 from cgpm.utils.general import get_intersection
-from cgpm.utils.general import mergedl
-from cgpm.utils.general import lchain
 from cgpm.utils.general import get_prng
+from cgpm.utils.general import lchain
+from cgpm.utils.general import mergedl
 
 from .chain import Chain
 
@@ -51,12 +51,7 @@ class Product(Chain):
 
     @classmethod
     def from_metadata(cls, metadata, rng):
-        def build_cgpm(blob):
-            modname, attrname = blob['factory']
-            module = importlib.import_module(modname)
-            builder = getattr(module, attrname)
-            return builder.from_metadata(blob, rng)
-        cgpms = [build_cgpm(blob) for blob in metadata['cgpms']]
+        cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
         model = cls(cgpms, rng)
         model.rowid_to_cgpm = dict(metadata['rowid_to_cgpm'])
         return model

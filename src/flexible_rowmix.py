@@ -3,8 +3,7 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-import importlib
-
+from cgpm.utils.general import build_cgpm
 from cgpm.utils.general import get_prng
 from cgpm.utils.general import lchain
 
@@ -46,13 +45,8 @@ class FlexibleRowMixture(FiniteRowMixture):
 
     @classmethod
     def from_metadata(cls, metadata, rng):
-        def build_cgpm(blob):
-            modname, attrname = blob['factory']
-            module = importlib.import_module(modname)
-            builder = getattr(module, attrname)
-            return builder.from_metadata(blob, rng)
-        cgpm_row_divide = build_cgpm(metadata['cgpm_row_divide'])
-        cgpm_components_array = build_cgpm(['cgpm_components_array'])
+        cgpm_row_divide = build_cgpm(metadata['cgpm_row_divide'], rng)
+        cgpm_components_array = build_cgpm(['cgpm_components_array'], rng)
         model = cls(cgpm_row_divide, cgpm_components_array.cgpm_base, rng)
         model.rowid_to_component = dict(metadata['rowid_to_component'])
         model.cgpm_components_array = cgpm_components_array
