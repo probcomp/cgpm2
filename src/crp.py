@@ -84,7 +84,7 @@ class CRP(DistributionCGPM):
         return {self.outputs[0]: x}
 
     def logpdf_score(self):
-        return calc_logpdf_marginal(self.N, self.counts, self.alpha)
+        return calc_logpdf_marginal(self.N, self.counts.values(), self.alpha)
 
     def to_metadata(self):
         metadata = dict()
@@ -204,5 +204,5 @@ def calc_predictive_logp(x, N, counts, alpha):
 
 def calc_logpdf_marginal(N, counts, alpha):
     # http://gershmanlab.webfactional.com/pubs/GershmanBlei12.pdf#page=4 (eq 8)
-    return len(counts) * log(alpha) + sum(gammaln(counts.values())) \
+    return len(counts) * log(alpha) + sum(gammaln(counts)) \
         + gammaln(alpha) - gammaln(N + alpha)
