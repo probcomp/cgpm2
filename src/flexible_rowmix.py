@@ -62,6 +62,5 @@ class FlexibleRowMixture(FiniteRowMixture):
         return [
             'FlexibleRowMixture',
             ['cgpm_row_divide=', self.cgpm_row_divide.render()],
-            ['cgpm_base=', self.cgpm_components_base.render()],
             ['cgpm_components=', self.cgpm_components_array.render()],
         ]

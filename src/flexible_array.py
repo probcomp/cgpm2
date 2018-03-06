@@ -20,7 +20,6 @@ class FlexibleArray(CGPM):
         self.outputs = self.cgpm_base.outputs
         self.inputs = [indexer] + self.cgpm_base.inputs
         self.indexer = indexer
-        self.cgpm_base_metadata = self.cgpm_base.to_metadata()
         # Internal attributes.
         self.cgpms = {}
         self.rowid_to_index = {}
@@ -45,14 +44,14 @@ class FlexibleArray(CGPM):
         i_select = self.rowid_to_index[rowid]
         del self.rowid_to_index[rowid]
         cgpm = self.get_cgpm(i_select)
-        cgpm.unincorporate(rowid)
+        return cgpm.unincorporate(rowid)
 
     def transition(self, **kwargs):
         return
 
     def to_metadata(self):
         metadata = dict()
-        metadata['cgpm_base_metadata'] = self.cgpm_base_metadata
+        metadata['cgpm_base'] = self.cgpm_base.to_metadata()
         metadata['indexer'] = self.inputs[0]
         metadata['rowid_to_index'] = self.rowid_to_index.items()
         metadata['cgpms'] = [(i, cgpm.to_metadata())
@@ -67,7 +66,7 @@ class FlexibleArray(CGPM):
             module = importlib.import_module(modname)
             builder = getattr(module, attrname)
             return builder.from_metadata(blob, rng)
-        cgpm_base = build_cgpm(metadata['cgpm_base_metadata'])
+        cgpm_base = build_cgpm(metadata['cgpm_base'])
         model = cls(cgpm_base, metadata['indexer'], rng)
         model.cgpms = {i: build_cgpm(blob) for i, blob in metadata['cgpms']}
         model.rowid_to_index = dict(metadata['rowid_to_index'])
@@ -89,7 +88,8 @@ class FlexibleArray(CGPM):
         return self.cgpms[i_select]
 
     def create_new_cgpm(self):
-        modname, attrname = self.cgpm_base_metadata['factory']
+        base_metadata = self.cgpm_base.to_metadata()
+        modname, attrname = base_metadata['factory']
         module = importlib.import_module(modname)
         builder = getattr(module, attrname)
-        return builder.from_metadata(self.cgpm_base_metadata, self.rng)
+        return builder.from_metadata(base_metadata, self.rng)
