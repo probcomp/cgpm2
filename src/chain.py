@@ -22,6 +22,7 @@ from cgpm.utils.general import lchain
 from cgpm.utils.general import log_pflip
 from cgpm.utils.general import logmeanexp
 from cgpm.utils.general import merged
+from cgpm.utils.general import mergedl
 from cgpm.utils.general import simulate_many
 
 from .icgpm import CGPM
@@ -56,10 +57,15 @@ class Chain(CGPM):
                 self.rowid_to_cgpm[rowid].append(i)
 
     def unincorporate(self, rowid):
-        if rowid in self.rowid_to_cgpm:
-            for i in self.rowid_to_cgpm[rowid]:
-                self.cgpms[i].unincorporate(rowid)
-            del self.rowid_to_cgpm[rowid]
+        # if rowid in self.rowid_to_cgpm:
+        observations_list, inputs_list = zip(*[
+            self.cgpms[i].unincorporate(rowid)
+            for i in self.rowid_to_cgpm[rowid]
+        ])
+        del self.rowid_to_cgpm[rowid]
+        observations_dict = mergedl(observations_list)
+        inputs_dict = mergedl(inputs_list)
+        return observations_dict, inputs_dict
 
     @simulate_many
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):

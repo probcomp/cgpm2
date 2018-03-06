@@ -41,7 +41,7 @@ class FiniteArray(CGPM):
         i_select = self.rowid_to_index[rowid]
         del self.rowid_to_index[rowid]
         cgpm = self.cgpms[i_select]
-        cgpm.unincorporate(rowid)
+        return cgpm.unincorporate(rowid)
 
     def transition(self, **kwargs):
         return

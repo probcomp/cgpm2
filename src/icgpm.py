@@ -51,7 +51,7 @@ class CGPM(object):
         raise NotImplementedError
 
     def unincorporate(self, rowid):
-        """Remove all incorporated observations of `rowid` from the dataset."""
+        """Remove and return all incorporated observations of `rowid`."""
         raise NotImplementedError
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):

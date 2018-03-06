@@ -56,10 +56,12 @@ class Normal(DistributionCGPM):
         self.data[rowid] = x
 
     def unincorporate(self, rowid):
+        DistributionCGPM.unincorporate(self, rowid)
         x = self.data.pop(rowid)
         self.N -= 1
         self.sum_x -= x
         self.sum_x_sq -= x*x
+        return {self.outputs[0]: x}, {}
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         DistributionCGPM.logpdf(self, rowid, targets, constraints, inputs)

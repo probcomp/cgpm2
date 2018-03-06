@@ -185,10 +185,12 @@ class FiniteRowMixture(CGPM):
         self.cgpm_components_array.incorporate(rowid, observation_x, inputs_arr)
 
     def unincorporate(self, rowid):
-        if rowid in self.rowid_to_component:
-            self.cgpm_row_divide.unincorporate(rowid)
-            self.cgpm_components_array.unincorporate(rowid)
-            del self.rowid_to_component[rowid]
+        obs_z, inputs_z = self.cgpm_row_divide.unincorporate(rowid)
+        obs_x, inputs_x = self.cgpm_components_array.unincorporate(rowid)
+        del self.rowid_to_component[rowid]
+        observation = merged(obs_z, obs_x)
+        inputs = merged(inputs_z, inputs_x)
+        return observation, inputs
 
     def transition(self, **kwargs):
         return

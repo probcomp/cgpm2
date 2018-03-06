@@ -46,11 +46,13 @@ class CRP(DistributionCGPM):
         self.data[rowid] = x
 
     def unincorporate(self, rowid):
+        DistributionCGPM.unincorporate(self, rowid)
         x = self.data.pop(rowid)
         self.N -= 1
         self.counts[x] -= 1
         if self.counts[x] == 0:
             del self.counts[x]
+        return {self.outputs[0]: x}, {}
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         # Do not call DistributionCGPM.logpdf since crp allows observed rowid.

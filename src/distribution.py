@@ -35,6 +35,10 @@ class DistributionCGPM(CGPM):
         assert not inputs
         assert observation.keys() == self.outputs
 
+    def unincorporate(self, rowid):
+        if rowid not in self.data:
+            raise ValueError('no such rowid: %s' % (repr(rowid)),)
+
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         assert rowid not in self.data
         assert not inputs
