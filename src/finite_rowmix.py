@@ -167,21 +167,20 @@ class FiniteRowMixture(CGPM):
 
     def incorporate(self, rowid, observation, inputs=None):
         if rowid in self.rowid_to_component:
-            component = self.rowid_to_component[rowid]
-        elif self.indexer in observation:
-            component = observation[self.indexer]
-            self.rowid_to_component[rowid] = component
+            component = {self.indexer: self.rowid_to_component[rowid]}
         else:
             inputs_z = get_intersection(self.inputs_z, inputs)
-            component_sim = self.cgpm_row_divide.simulate(
-                rowid, [self.indexer], inputs_z)
-            component = component_sim[self.indexer]
-            self.cgpm_row_divide.incorporate(
-                rowid, {self.indexer: component}, inputs_z)
-            self.rowid_to_component[rowid] = component
+            if self.indexer in observation:
+                component = {self.indexer: observation[self.indexer]}
+            else:
+                component = self.cgpm_row_divide.simulate(
+                    rowid, [self.indexer], inputs_z)
+            inputs_z = get_intersection(self.inputs_z, inputs)
+            self.cgpm_row_divide.incorporate(rowid, component, inputs_z)
+            self.rowid_to_component[rowid] = component[self.indexer]
         inputs_x = get_intersection(self.inputs_x, inputs)
         observation_x = get_intersection(self.outputs_x, observation)
-        inputs_arr = merged(inputs_x, {self.indexer: component})
+        inputs_arr = merged(inputs_x, component)
         self.cgpm_components_array.incorporate(rowid, observation_x, inputs_arr)
 
     def unincorporate(self, rowid):
