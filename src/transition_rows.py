@@ -19,6 +19,6 @@ def transition_rows(cgpm_mixture, rowid, rng):
         observation[cgpm_mixture.cgpm_row_divide.outputs[0]] = z
         logp_z = cgpm_mixture.logpdf(None, observation, None, inputs)
         logps.append(logp_z)
-    index = log_pflip(logps, array=zs, rng=rng)
-    observation[cgpm_mixture.cgpm_row_divide.outputs[0]] = zs[index]
+    assignment = log_pflip(logps, array=zs, rng=rng)
+    observation[cgpm_mixture.cgpm_row_divide.outputs[0]] = assignment
     cgpm_mixture.incorporate(rowid, observation, inputs)
