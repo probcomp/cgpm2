@@ -31,7 +31,8 @@ class DistributionCGPM(CGPM):
         raise NotImplementedError()
 
     def incorporate(self, rowid, observation, inputs=None):
-        assert rowid not in self.data
+        if rowid in self.data:
+            raise ValueError('rowid already exists: %d' % (rowid,))
         assert not inputs
         assert observation.keys() == self.outputs
 
