@@ -84,7 +84,7 @@ class DistributionCGPM(CGPM):
     def render(self):
         """Return an AST-like representation of the CGPM."""
         return [
-            self.name(),
+            '%s%s' % (self.name()[0].upper(), self.name()[1:],),
             ['outputs=', self.outputs],
             ['inputs=', self.inputs],
             ['distargs=', self.get_distargs()],
