@@ -107,28 +107,6 @@ def add_cgpm(cgpm, cgpm_new):
     else:
         assert False, 'Not implemented'
 
-# What is the game plan here?
-# Step 0: Get the observations.
-# Step 1: Get a "base" CGPM with no observations.
-# Step 1: For current view in the product:
-#           - Get the logpdf score
-# Step 1: For each other view in the product:
-#           - Get the proposal view, using add_cgpm.
-#           - Incorporate all the data
-#           - Compute the logpdf_score
-# Step 2: For a singleton FlexibleRowMixture:
-#           - Incorporate all the data
-#           - Compute the logpdf score.
-# Step 3: Sample a new view.
-# Step 4: If same view, return
-# Step 5: If different view (existing):
-#           - Set the current view to remove_cgpm(view)
-#           - Set the sampled view to the proposal view.
-#         If different view (fresh):
-#           - Add it to the product, using add_cgpm.
-# Step 6: If current view is now empty (has one output, the row divider):
-#           - Remove it from the product, using remove_cgpm.
-
 def get_dataset(cgpm, output):
     cgpms = get_cgpms_by_output_index(cgpm, output)
     assert all([isinstance(cgpm, DistributionCGPM) for cgpm in cgpms])
