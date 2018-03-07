@@ -73,3 +73,5 @@ def get_cgpms_by_output_index(cgpm, output):
             return get_cgpms_by_output_index(cgpm.cgpm_row_divide, output)
         else:
             return get_cgpms_by_output_index(cgpm.cgpm_components_array, output)
+    else:
+        assert False, 'Unknown CGPM'
