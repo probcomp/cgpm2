@@ -145,9 +145,7 @@ class Categorical(DistributionCGPM):
     def is_numeric():
         return False
 
-    ##################
-    # HELPER METHODS #
-    ##################
+    # Helpers.
 
     @staticmethod
     def validate(x, K):
