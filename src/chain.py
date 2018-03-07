@@ -45,24 +45,16 @@ class Chain(CGPM):
         self.adjacency = retrieve_adjacency_list(self.cgpms, self.v_to_c)
         self.extraneous = retrieve_extraneous_inputs(self.cgpms, self.v_to_c)
         self.topo = topological_sort(self.adjacency)
-        # Internal attributes.
-        self.rowid_to_cgpm = {}
 
     def incorporate(self, rowid, observation, inputs=None):
-        for i, cgpm in enumerate(self.cgpms):
-            incorporated = incorporate_one(cgpm, rowid, observation, inputs)
-            if incorporated:
-                if rowid not in self.rowid_to_cgpm:
-                    self.rowid_to_cgpm[rowid] = []
-                self.rowid_to_cgpm[rowid].append(i)
+        for cgpm in self.cgpms:
+            incorporate_one(cgpm, rowid, observation, inputs)
 
     def unincorporate(self, rowid):
-        # if rowid in self.rowid_to_cgpm:
         observations_list, inputs_list = zip(*[
-            self.cgpms[i].unincorporate(rowid)
-            for i in self.rowid_to_cgpm[rowid]
+            unincorporate_one(cgpm, rowid)
+            for cgpm in self.cgpms
         ])
-        del self.rowid_to_cgpm[rowid]
         observations_dict = mergedl(observations_list)
         inputs_dict = mergedl(inputs_list)
         return observations_dict, inputs_dict
@@ -110,7 +102,6 @@ class Chain(CGPM):
         metadata = dict()
         metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]
         metadata['accuracy'] = self.accuracy
-        metadata['rowid_to_cgpm'] = self.rowid_to_cgpm.items()
         metadata['factory'] = ('cgpm2.chain', 'Chain')
         return metadata
 
@@ -118,7 +109,6 @@ class Chain(CGPM):
     def from_metadata(cls, metadata, rng):
         cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
         model = cls(cgpms, accuracy=metadata['accuracy'], rng=rng)
-        model.rowid_to_cgpm = dict(metadata['rowid_to_cgpm'])
         return model
 
     def render(self):
@@ -171,8 +161,12 @@ class Chain(CGPM):
 
 def incorporate_one(cgpm, rowid, observation, inputs):
     observation_cgpm = get_intersection(cgpm.outputs, observation)
-    if not observation_cgpm:
-        return None
-    inputs_cgpm = get_intersection(cgpm.inputs, inputs)
-    cgpm.incorporate(rowid, observation_cgpm, inputs_cgpm)
-    return True
+    if observation_cgpm:
+        inputs_cgpm = get_intersection(cgpm.inputs, inputs)
+        cgpm.incorporate(rowid, observation_cgpm, inputs_cgpm)
+
+def unincorporate_one(cgpm, rowid):
+    try:
+        return cgpm.unincorporate(rowid)
+    except Exception:
+        return {}, {}

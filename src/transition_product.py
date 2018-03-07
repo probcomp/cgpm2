@@ -29,7 +29,6 @@ def remove_cgpm(cgpm, output):
         cgpms_new = [c for c in cgpm.cgpms if output not in c.outputs]
         assert len(cgpms_new) in [len(cgpm.cgpms)-1, len(cgpm.cgpms)]
         result = Product(cgpms_new, rng=cgpm.rng)
-        result.rowid_to_cgpm = cgpm.rowid_to_cgpm # XXX Remove the output cgpm.
         return result
     elif isinstance(cgpm, FlexibleArray):
         cgpm_base_new = remove_cgpm(cgpm.cgpm_base, output)
@@ -71,7 +70,6 @@ def add_cgpm(cgpm, cgpm_new):
     if isinstance(cgpm, Product):
         cgpms_new = cgpm.cgpms + [cgpm_new]
         result = Product(cgpms_new, rng=cgpm.rng)
-        result.rowid_to_cgpm = cgpm.rowid_to_cgpm
         return result
     elif isinstance(cgpm, FlexibleArray):
         cgpm_base_new = add_cgpm(cgpm.cgpm_base, cgpm_new)
