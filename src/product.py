@@ -26,8 +26,6 @@ class Product(Chain):
         # Derived attributes.
         self.outputs = lchain(*[cgpm.outputs for cgpm in self.cgpms])
         self.inputs = lchain(*[cgpm.inputs for cgpm in self.cgpms])
-        # Internal attributes.
-        self.rowid_to_cgpm = {}
 
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         samples = [simulate_one(cgpm, rowid, targets, constraints, inputs, N)
@@ -45,7 +43,6 @@ class Product(Chain):
     def to_metadata(self):
         metadata = dict()
         metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]
-        metadata['rowid_to_cgpm'] = self.rowid_to_cgpm.items()
         metadata['factory'] = ('cgpm2.product', 'Product')
         return metadata
 
@@ -53,7 +50,6 @@ class Product(Chain):
     def from_metadata(cls, metadata, rng):
         cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
         model = cls(cgpms, rng)
-        model.rowid_to_cgpm = dict(metadata['rowid_to_cgpm'])
         return model
 
     def render(self):
