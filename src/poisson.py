@@ -4,6 +4,7 @@
 # Released under Apache 2.0; refer to LICENSE.txt.
 
 from collections import OrderedDict
+from math import isnan
 from math import log
 
 import numpy as np
@@ -43,19 +44,21 @@ class Poisson(DistributionCGPM):
     def incorporate(self, rowid, observation, inputs=None):
         DistributionCGPM.incorporate(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
-        if not (x % 1 == 0 and x >= 0):
-            raise ValueError('Invalid Poisson: %s' % str(x))
-        self.N += 1
-        self.sum_x += x
-        self.sum_log_fact_x += gammaln(x+1)
+        if not isnan(x):
+            if not (x % 1 == 0 and x >= 0):
+                raise ValueError('Invalid Poisson: %s' % str(x))
+            self.N += 1
+            self.sum_x += x
+            self.sum_log_fact_x += gammaln(x+1)
         self.data[rowid] = x
 
     def unincorporate(self, rowid):
         DistributionCGPM.unincorporate(self, rowid)
         x = self.data.pop(rowid)
-        self.N -= 1
-        self.sum_x -= x
-        self.sum_log_fact_x -= gammaln(x+1)
+        if not isnan(x):
+            self.N -= 1
+            self.sum_x -= x
+            self.sum_log_fact_x -= gammaln(x+1)
         return {self.outputs[0]: x}, {}
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
@@ -63,6 +66,8 @@ class Poisson(DistributionCGPM):
         x = targets[self.outputs[0]]
         if not (x % 1 == 0 and x >= 0):
             return -float('inf')
+        if isnan(x):
+            return 0.
         return calc_predictive_logp(x, self.N, self.sum_x, self.a, self.b)
 
     @simulate_many

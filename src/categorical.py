@@ -4,6 +4,7 @@
 # Released under Apache 2.0; refer to LICENSE.txt.
 
 from collections import OrderedDict
+from math import isnan
 from math import log
 
 import numpy as np
@@ -41,23 +42,27 @@ class Categorical(DistributionCGPM):
     def incorporate(self, rowid, observation, inputs=None):
         DistributionCGPM.incorporate(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
-        if not (x % 1 == 0 and 0 <= x < self.k):
-            raise ValueError('Invalid Categorical(%d): %s' % (self.k, x))
-        x = int(x)
-        self.N += 1
-        self.counts[x] += 1
+        if not isnan(x):
+            if not (x % 1 == 0 and 0 <= x < self.k):
+                raise ValueError('Invalid Categorical(%d): %s' % (self.k, x))
+            x = int(x)
+            self.N += 1
+            self.counts[x] += 1
         self.data[rowid] = x
 
     def unincorporate(self, rowid):
         DistributionCGPM.unincorporate(self, rowid)
         x = self.data.pop(rowid)
-        self.N -= 1
-        self.counts[x] -= 1
+        if not isnan(x):
+            self.N -= 1
+            self.counts[x] -= 1
         return {self.outputs[0]: x}, {}
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         DistributionCGPM.logpdf(self, rowid, targets, constraints, inputs)
         x = targets[self.outputs[0]]
+        if isnan(x):
+            return 0.
         if not (x % 1 == 0 and 0 <= x < self.k):
             return -float('inf')
         return calc_predictive_logp(int(x), self.N, self.counts, self.alpha)

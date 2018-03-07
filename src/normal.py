@@ -4,6 +4,7 @@
 # Released under Apache 2.0; refer to LICENSE.txt.
 
 from collections import OrderedDict
+from math import isnan
 from math import lgamma
 from math import log
 from math import pi
@@ -50,22 +51,26 @@ class Normal(DistributionCGPM):
     def incorporate(self, rowid, observation, inputs=None):
         DistributionCGPM.incorporate(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
-        self.N += 1.
-        self.sum_x += x
-        self.sum_x_sq += x*x
+        if not isnan(x):
+            self.N += 1.
+            self.sum_x += x
+            self.sum_x_sq += x*x
         self.data[rowid] = x
 
     def unincorporate(self, rowid):
         DistributionCGPM.unincorporate(self, rowid)
         x = self.data.pop(rowid)
-        self.N -= 1
-        self.sum_x -= x
-        self.sum_x_sq -= x*x
+        if not isnan(x):
+            self.N -= 1
+            self.sum_x -= x
+            self.sum_x_sq -= x*x
         return {self.outputs[0]: x}, {}
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         DistributionCGPM.logpdf(self, rowid, targets, constraints, inputs)
         x = targets[self.outputs[0]]
+        if isnan(x):
+            return 0.
         return calc_predictive_logp(x, self.N, self.sum_x, self.sum_x_sq,
             self.m, self.r, self.s, self.nu)
 
