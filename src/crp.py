@@ -122,7 +122,7 @@ class CRP(DistributionCGPM):
         return self.params
 
     def get_suffstats(self):
-        return {'N': self.N, 'counts': list(self.counts)}
+        return {'N': self.N, 'counts': self.counts.values()}
 
     def get_distargs(self):
         return {}
