@@ -103,6 +103,9 @@ class Chain(CGPM):
         # Return log ratio.
         return logp_joint - logp_constraints
 
+    def logpdf_score(self):
+        return sum(cgpm.logpdf_score() for cgpm in self.cgpms)
+
     def to_metadata(self):
         metadata = dict()
         metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]

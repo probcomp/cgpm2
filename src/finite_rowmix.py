@@ -164,6 +164,11 @@ class FiniteRowMixture(CGPM):
             lp_joint = np.add(lp_targets_likelihood, lp_z_posterior)
             return logsumexp(lp_joint)
 
+    def logpdf_score(self):
+        score_z = self.cgpm_row_divide.logpdf_score()
+        score_x = self.cgpm_components_array.logpdf_score()
+        return score_z + score_x
+
     def incorporate(self, rowid, observation, inputs=None):
         if rowid in self.rowid_to_component:
             component = {self.indexer: self.rowid_to_component[rowid]}
