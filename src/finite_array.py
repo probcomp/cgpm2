@@ -4,16 +4,17 @@
 # Released under Apache 2.0; refer to LICENSE.txt.
 
 from cgpm.utils.general import build_cgpm
+from cgpm.utils.general import get_prng
 
 from .icgpm import CGPM
 
 
 class FiniteArray(CGPM):
 
-    def __init__(self, cgpms, indexer, rng):
+    def __init__(self, cgpms, indexer, rng=None):
         # From constructor.
         self.cgpms = cgpms
-        self.rng = rng
+        self.rng = rng or get_prng()
         # Derived attributes.
         self.outputs = self.cgpms[0].outputs
         self.inputs = [indexer] + self.cgpms[0].inputs
