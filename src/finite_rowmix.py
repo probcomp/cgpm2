@@ -3,8 +3,6 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-import itertools
-
 import numpy as np
 
 from cgpm.utils.general import build_cgpm
@@ -63,13 +61,7 @@ class FiniteRowMixture(CGPM):
             self._simulate_one(rowid, targets, constraints, inputs, n, z)
             for z, n in counts.iteritems()
         ]
-        if N is None:
-            assert len(samples) == 1
-            assert len(samples[0]) == 1
-            assert len(samples[0][0]) == len(targets)
-            return samples[0][0]
-        else:
-            return list(itertools.chain.from_iterable(samples))
+        return samples[0][0] if N is None else lchain(*samples)
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         if rowid in self.rowid_to_component:
