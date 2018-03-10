@@ -148,10 +148,12 @@ class Normal(DistributionCGPM):
     def construct_hyper_grids(X, n_grid=30):
         grids = dict()
         # Plus 1 for single observation case.
-        N = len(X) + 1.
-        ssqdev = np.var(X) * len(X) + 1.
+        N = len(X) if len(X) > 0 else 5
+        minX = min(X) if len(X) > 0 else 0
+        maxX = max(X) if len(X) > 0 else 1
+        ssqdev = np.var(X) * N + 1 if len(X) > 0 else 1
         # Data dependent heuristics.
-        grids['m'] = np.linspace(min(X), max(X) + 5, n_grid)
+        grids['m'] = np.linspace(minX, maxX + 5, n_grid)
         grids['r'] = log_linspace(1. / N, N, n_grid)
         grids['s'] = log_linspace(ssqdev / 100., ssqdev, n_grid)
         grids['nu'] = log_linspace(1., N, n_grid) # df >= 1

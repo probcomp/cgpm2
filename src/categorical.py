@@ -127,7 +127,8 @@ class Categorical(DistributionCGPM):
     @staticmethod
     def construct_hyper_grids(X, n_grid=30):
         grids = dict()
-        grids['alpha'] = log_linspace(1., float(len(X)), n_grid)
+        N = len(X) if len(X) > 0 else 2
+        grids['alpha'] = log_linspace(1., float(N), n_grid)
         return grids
 
     @staticmethod

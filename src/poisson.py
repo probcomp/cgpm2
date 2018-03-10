@@ -134,10 +134,9 @@ class Poisson(DistributionCGPM):
     @staticmethod
     def construct_hyper_grids(X, n_grid=30):
         grids = dict()
-        # Only use integers for a so we can nicely draw from a negative binomial
-        # in predictive_draw
-        grids['a'] = np.unique(np.round(np.linspace(1, len(X), n_grid)))
-        grids['b'] = log_linspace(.1, float(len(X)), n_grid)
+        N = len(X) if len(X) > 0 else 2
+        grids['a'] = np.unique(np.round(np.linspace(1, N, n_grid)))
+        grids['b'] = log_linspace(.1, float(N), n_grid)
         return grids
 
     @staticmethod
