@@ -30,7 +30,7 @@ def get_dataset(cgpm, output):
 def get_cgpm_base(cgpm, output):
     cgpms = get_cgpms_by_output_index(cgpm, output)
     assert all([isinstance(cgpm, DistributionCGPM) for cgpm in cgpms])
-    empty_cgpms = [cgpm for cgpm in cgpms if cgpm.N == 0]
+    empty_cgpms = [cgpm for cgpm in cgpms if len(cgpm.data) == 0]
     return empty_cgpms[0]
 
 def get_cgpm_data_logp(view, output):
