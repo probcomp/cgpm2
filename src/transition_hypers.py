@@ -58,7 +58,7 @@ def transition_hypers_full(cgpms, grids, rng):
         cgpm.set_hypers(selected)
     return selected, cells, logps
 
-def transtion_hyper_grids(cgpms, n_grid=30):
+def transition_hyper_grids(cgpms, n_grid=30):
     """Get hyperparameter grid using Empirical Bayes across all CGPMs."""
     assert all([isinstance(cgpm, DistributionCGPM) for cgpm in cgpms])
     assert all([type(cgpm) is type(cgpms[0]) for cgpm in cgpms])
