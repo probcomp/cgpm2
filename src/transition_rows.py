@@ -22,3 +22,6 @@ def transition_rows(cgpm_mixture, rowid, rng):
     assignment = log_pflip(logps, array=zs, rng=rng)
     observation[cgpm_mixture.cgpm_row_divide.outputs[0]] = assignment
     cgpm_mixture.incorporate(rowid, observation, inputs)
+
+def get_rowids(cgpm_mixture):
+    return cgpm_mixture.cgpm_row_divide.data.keys()
