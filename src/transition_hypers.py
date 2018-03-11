@@ -64,3 +64,12 @@ def transition_hyper_grids(cgpms, n_grid=30):
     assert all([type(cgpm) is type(cgpms[0]) for cgpm in cgpms])
     X = [x for cgpm in cgpms for x in cgpm.data.itervalues() if not isnan(x)]
     return cgpms[0].construct_hyper_grids(X, n_grid)
+
+def set_hypers(cgpms, hypers):
+    """Set hypers of the given cgpms."""
+    assert all([isinstance(cgpm, DistributionCGPM) for cgpm in cgpms])
+    assert all([type(cgpm) is type(cgpms[0]) for cgpm in cgpms])
+    for cgpm in cgpms:
+        current_hypers = cgpm.get_hypers()
+        current_hypers.update(hypers)
+        cgpm.set_hypers(current_hypers)

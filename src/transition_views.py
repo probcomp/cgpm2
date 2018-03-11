@@ -119,3 +119,50 @@ def transition_cgpm_view_assigments(crosscat, outputs, aux=1):
         crosscat = remove_cgpm(crosscat, view_sampled_original.outputs[0])
         crosscat = add_cgpm(crosscat, view_sampled)
     return crosscat
+
+def set_cgpm_view_assignment(crosscat, output0, output1):
+    """Move cgpm of output0 to view of output1(use None for a singleton)."""
+    return set_cgpm_view_assignment_singleton(crosscat, output0) \
+        if output1 is None \
+        else set_cgpm_view_assignment_existing(crosscat, output0, output1)
+
+def set_cgpm_view_assignment_existing(crosscat, output0, output1):
+    view_idx0 = get_cgpm_current_view_index(crosscat, [output0])
+    view_idx1 = get_cgpm_current_view_index(crosscat, [output1])
+    if view_idx0 == view_idx1:
+        return crosscat
+    # Fetch views of output0.
+    view0 = crosscat.cgpms[view_idx0]
+    view0_prime = remove_cgpm(view0, output0)
+    # Fetch views of output1.
+    view1 = crosscat.cgpms[view_idx1]
+    cgpm0_base = get_cgpm_base(crosscat, output0)
+    cgpm0_dataset = get_dataset(crosscat, output0)
+    view1_prime = get_cgpm_view_proposal_existing_one(view1,
+        [cgpm0_base], [cgpm0_dataset])
+    # Remove view of output0, and add again if necessary.
+    crosscat = remove_cgpm(crosscat, view0.outputs[0])
+    if len(view0_prime.outputs) > 1:
+        crosscat = add_cgpm(crosscat, view0_prime)
+    # Remove view of output1 and add again including output0.
+    crosscat = remove_cgpm(crosscat, view1.outputs[0])
+    crosscat = add_cgpm(crosscat, view1_prime)
+    return crosscat
+
+def set_cgpm_view_assignment_singleton(crosscat, output0):
+    view_idx0 = get_cgpm_current_view_index(crosscat, [output0])
+    # Fetch views of output0.
+    view0 = crosscat.cgpms[view_idx0]
+    view0_prime = remove_cgpm(view0, output0)
+    # Fetch singleton view.
+    cgpm0_base = get_cgpm_base(crosscat, output0)
+    cgpm0_dataset = get_dataset(crosscat, output0)
+    view0_singleton = get_cgpm_view_proposal_singleton_one(crosscat,
+        [cgpm0_base], [cgpm0_dataset])
+    # Remove view of output0, and add again if necessary.
+    crosscat = remove_cgpm(crosscat, view0.outputs[0])
+    if len(view0_prime.outputs) > 1:
+        crosscat = add_cgpm(crosscat, view0_prime)
+    # Add singleton again if necessary.
+    crosscat = add_cgpm(crosscat, view0_singleton)
+    return crosscat

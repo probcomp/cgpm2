@@ -11,13 +11,16 @@ from .distribution import DistributionCGPM
 from .flexible_rowmix import FlexibleRowMixture
 from .product import Product
 
+from .transition_hypers import set_hypers
 from .transition_hypers import transition_hyper_grids
 from .transition_hypers import transition_hypers
 
 from .transition_rows import get_rowids
+from .transition_rows import set_rowid_component
 from .transition_rows import transition_rows
 
 from .transition_views import get_cgpm_current_view_index
+from .transition_views import set_cgpm_view_assignment
 from .transition_views import transition_cgpm_view_assigments
 
 from .walks import get_cgpms_by_output_index
@@ -75,6 +78,24 @@ class GibbsCrossCat(object):
         for output in outputs:
             self.crosscat = \
                 transition_cgpm_view_assigments(self.crosscat, [output])
+
+    # Deterministic mutation.
+
+    def set_hypers_distribution(self, output, hypers):
+        distribution_cgpms = self._get_distribution_cgpms([output])
+        set_hypers(distribution_cgpms[output], hypers)
+
+    def set_hypers_row_divide(self, output, hypers):
+        crp_cgpm = self._get_row_divide_cgpms([output])
+        set_hypers(crp_cgpm.values()[0], hypers)
+
+    def set_rowid_component(self, outputs, rowid0, rowid1):
+        views = self._get_row_mixture_cgpms(outputs)
+        for view in views:
+            set_rowid_component(view, rowid0, rowid1)
+
+    def set_view_assignment(self, output0, output1):
+        self.crosscat = set_cgpm_view_assignment(self.crosscat, output0, output1)
 
     # Helpers.
 
