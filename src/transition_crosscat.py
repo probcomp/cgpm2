@@ -6,10 +6,11 @@
 import itertools
 
 from .crp import CRP
-
 from .distribution import DistributionCGPM
 from .flexible_rowmix import FlexibleRowMixture
 from .product import Product
+
+from .progress import transition_generic
 
 from .transition_crosscat_cpp import transition_cpp
 
@@ -84,6 +85,26 @@ class GibbsCrossCat(object):
         self.transition_hyper_grids_distribution()
 
     # Stochastic mutation (python synthesizer).
+
+    def transition(self, N=None, S=None, kernels=None, outputs=None,
+            rowids=None, progress=None):
+        kernel_lookup = {
+            'hypers_distributions':
+                lambda : self.transition_hypers_distributions(outputs=outputs),
+            'hypers_row_divide':
+                lambda : self.transition_hypers_row_divide(outputs=outputs),
+            'hypers_column_divide':
+                self.transition_hypers_column_divide,
+            'row_assignments':
+                lambda : self.transition_row_assignments(
+                    outputs=outputs, rowids=rowids),
+            'view_assignments':
+                lambda : self.transition_view_assignments(outputs=outputs),
+        }
+        if kernels is None:
+            kernels = kernel_lookup.keys()
+        kernel_funcs = [kernel_lookup[k] for k in kernels]
+        transition_generic(kernel_funcs, N, S, progress)
 
     def transition_hypers_distributions(self, outputs=None):
         distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
