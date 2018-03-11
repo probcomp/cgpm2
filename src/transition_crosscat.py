@@ -11,6 +11,8 @@ from .distribution import DistributionCGPM
 from .flexible_rowmix import FlexibleRowMixture
 from .product import Product
 
+from .transition_crosscat_cpp import transition_cpp
+
 from .transition_hypers import set_hypers
 from .transition_hypers import transition_hyper_grids
 from .transition_hypers import transition_hypers
@@ -81,7 +83,7 @@ class GibbsCrossCat(object):
         self.transition_hyper_grids_row_divide()
         self.transition_hyper_grids_distribution()
 
-    # Stochastic mutation.
+    # Stochastic mutation (python synthesizer).
 
     def transition_hypers_distributions(self, outputs=None):
         distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
@@ -120,6 +122,39 @@ class GibbsCrossCat(object):
         for output in outputs:
             self.crosscat = \
                 transition_cgpm_view_assigments(self.crosscat, [output])
+
+    # Stochastic mutation (cpp synthesizer).
+
+    def transition_row_assignments_cpp(self, N=None, S=None, rowids=None):
+        seed = self.rng.randint(2**32-1)
+        kernels = [
+            'row_partition_hyperparameters',
+            'column_hyperparameters',
+            'row_partition_hyperparameters',
+            'row_partition_assignments',
+        ]
+        self.crosscat = transition_cpp(self.crosscat, N=N, S=S,
+            kernels=kernels, rowids=rowids, seed=seed)
+        self.transition_hypers_distributions()
+        self.transition_hypers_row_divide()
+
+    def transition_view_assignments_cpp(self, N=None, S=None, outputs=None):
+        seed = self.rng.randint(2**32-1)
+        kernels = [
+            'column_partition_assignments',
+            'column_partition_hyperparameter',
+        ]
+        self.crosscat = transition_cpp(self.crosscat, N=N, S=S,
+            kernels=kernels, cols=outputs, seed=seed)
+        self.transition_hypers_distributions()
+        self.transition_hypers_row_divide()
+
+    def transition_structure_cpp(self, N=None, S=None, outputs=None):
+        seed = self.rng.randint(2**32-1)
+        self.crosscat = transition_cpp(self.crosscat, N=N, S=S, cols=outputs,
+            seed=seed)
+        self.transition_hypers_distributions()
+        self.transition_hypers_row_divide()
 
     # Deterministic mutation.
 
