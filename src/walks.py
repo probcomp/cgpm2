@@ -22,7 +22,7 @@ def clone_cgpm(cgpm_base, rng):
     return build_cgpm(metadata, rng)
 
 def get_cgpms_by_output_index(cgpm, output):
-    """Retrieve all cgpms internal to cgpm that modeling given output."""
+    """Retrieve all cgpms internal to cgpm that generate the given output."""
     if isinstance(cgpm, DistributionCGPM):
         return [cgpm] if cgpm.outputs == [output] else []
     elif isinstance(cgpm, (Chain, Product)):
@@ -45,8 +45,10 @@ def get_cgpms_by_output_index(cgpm, output):
         assert False, 'Unknown CGPM'
 
 def remove_cgpm(cgpm, output):
-    """Remove CGPM responsible for output from the given cgpm."""
-    if isinstance(cgpm, Product):
+    """Remove CGPM responsible for output from the given composite cgpm."""
+    if isinstance(cgpm, DistributionCGPM):
+        assert False, 'DistributionCGPM is not composite'
+    elif isinstance(cgpm, Product):
         cgpms_new = [c for c in cgpm.cgpms if output not in c.outputs]
         assert len(cgpms_new) in [len(cgpm.cgpms)-1, len(cgpm.cgpms)]
         result = Product(cgpms_new, rng=cgpm.rng)
