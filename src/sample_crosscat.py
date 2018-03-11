@@ -96,6 +96,10 @@ def core_compile_key(stream, i, k):
     core_compile_indent(stream, i)
     stream.write('%s:\n' % (k,))
 
+def core_compile_key_list(stream, i, k):
+    core_compile_indent(stream, i)
+    stream.write('- %s:\n' % (k,))
+
 def core_compile_hypers(stream, i, hypers):
     core_compile_key(stream, i, 'hypers')
     for k,v in hypers.iteritems():
@@ -109,9 +113,9 @@ def core_compile_distargs(stream, i, distargs):
 
 def core_compile_distribution(stream, i, distribution):
     ((distname, distargs), hypers) = distribution
-    core_compile_key(stream, i, distname)
-    core_compile_distargs(stream, i+2, distargs)
-    core_compile_hypers(stream, i+2, hypers)
+    core_compile_key_list(stream, i, distname)
+    core_compile_distargs(stream, i+4, distargs)
+    core_compile_hypers(stream, i+4, hypers)
 
 def core_compile_distributions(stream, i, distributions):
     core_compile_key(stream, i, 'distribution models')
@@ -122,16 +126,16 @@ def core_compile_row_clustering(stream, i, distribution):
     core_compile_key(stream, i, 'row clustering model')
     core_compile_distribution(stream, i+2, distribution)
 
-def core_compile_view(stream, i, c, ast_view):
+def core_compile_view(stream, i, ast_view):
     row_clustering, distributions = ast_view
-    stream.write('%s %d:\n' % ('view', c,))
-    core_compile_row_clustering(stream, i+2, row_clustering)
-    core_compile_distributions(stream, i+2, distributions)
+    core_compile_key_list(stream, i, 'view')
+    core_compile_row_clustering(stream, i+4, row_clustering)
+    core_compile_distributions(stream, i+4, distributions)
 
 def compile_ast_to_core_dsl(ast, stream=None):
     stream = stream or StringIO()
-    for c, ast_view in enumerate(ast):
-        core_compile_view(stream, 0, c, ast_view)
+    for ast_view in ast:
+        core_compile_view(stream, 0, ast_view)
     return stream
 
 
@@ -179,7 +183,10 @@ def embedded_compile_kwarg(stream, i, k, v):
     core_compile_indent(stream, i)
     stream.write('%s=%s,' % (k,v))
 
-def embedded_compile_primitive(stream, i, distname, kwargs):
+def embedded_compile_primitive(stream, i, ast_primitive):
+    assert len(ast_primitive) == 1
+    distname = ast_primitive.keys()[0]
+    kwargs = ast_primitive.values()[0]
     core_compile_indent(stream, i)
     constructor = primitive_constructors[distname]
     stream.write('%s(' % (constructor))
@@ -193,21 +200,21 @@ def embedded_compile_primitive(stream, i, distname, kwargs):
 def embedded_compile_product(stream, i, distributions):
     core_compile_indent(stream, i)
     stream.write('Product(cgpms=[\n')
-    for k, (distname, kwargs) in enumerate(distributions.iteritems()):
-        embedded_compile_primitive(stream, i+4, distname, kwargs)
+    for k, ast_distribution in enumerate(distributions):
+        embedded_compile_primitive(stream, i+4, ast_distribution)
         stream.write(',')
         if k < len(distributions) - 1:
             stream.write('\n')
     stream.write('])')
 
 def embedded_compile_row_mixture(stream, i, v, ast_view):
-    row_clustering = ast_view['row clustering model'].items()[0]
+    row_clustering = ast_view['row clustering model'][0]
     distributions = ast_view['distribution models']
     core_compile_indent(stream, i)
     stream.write('view%d = FlexibleRowMixture(\n' % (v,))
     core_compile_indent(stream, i+2)
     stream.write('cgpm_row_divide=')
-    embedded_compile_primitive(stream, 0, row_clustering[0], row_clustering[1])
+    embedded_compile_primitive(stream, 0, row_clustering)
     stream.write(',\n')
     core_compile_indent(stream, i+2)
     stream.write('cgpm_components_base=')
@@ -221,7 +228,8 @@ def compile_core_dsl_to_embedded_dsl(core_dsl, stream=None):
     for import_stmt in imports:
         stream.write('%s\n' % (import_stmt,))
     stream.write('\n')
-    for v, ast_view in enumerate(core_dsl_yaml.itervalues()):
+    for v, ast_view_full in enumerate(core_dsl_yaml):
+        ast_view = ast_view_full['view']
         embedded_compile_row_mixture(stream, 0, v, ast_view)
         stream.write('\n')
     views = ', '.join('view%d' % (v,) for v in xrange(len(core_dsl_yaml)))
