@@ -26,6 +26,48 @@ from .transition_views import transition_cgpm_view_assigments
 from .walks import get_cgpms_by_output_index
 
 
+def get_distribution_outputs(crosscat):
+    return list(itertools.chain.from_iterable(
+        [view.outputs[1:] for view in crosscat.cgpms]
+    ))
+
+def get_row_mixture_cgpms(crosscat, outputs=None):
+    outputs = outputs or get_distribution_outputs(crosscat)
+    view_indexes = set([
+        get_cgpm_current_view_index(crosscat, [output])
+        for output in outputs
+    ])
+    return [crosscat.cgpms[i] for i in view_indexes]
+
+def get_row_divide_outputs(crosscat, outputs=None):
+    views = get_row_mixture_cgpms(crosscat, outputs)
+    return [view.outputs[0] for view in views]
+
+def get_distribution_cgpms(crosscat, outputs=None):
+    outputs = outputs or get_distribution_outputs(crosscat)
+    return {
+        output: get_cgpms_by_output_index(crosscat, output)
+        for output in outputs
+    }
+
+def get_row_divide_cgpms(crosscat, outputs=None):
+    crp_outputs = get_row_divide_outputs(crosscat, outputs)
+    return {
+        output: get_cgpms_by_output_index(crosscat, output)
+        for output in crp_outputs
+    }
+
+def validate_crosscat(crosscat):
+    assert isinstance(crosscat, Product)
+    for view in crosscat.cgpms:
+        assert isinstance(view, (FlexibleRowMixture))
+        assert isinstance(view.cgpm_row_divide, CRP)
+        array = view.cgpm_components_array
+        assert isinstance(array.cgpm_base, Product)
+        for component in array.cgpm_base.cgpms:
+            assert isinstance(component, DistributionCGPM)
+
+
 class GibbsCrossCat(object):
 
     def __init__(self, crosscat, rng):
@@ -42,12 +84,12 @@ class GibbsCrossCat(object):
     # Stochastic mutation.
 
     def transition_hypers_distributions(self, outputs=None):
-        distribution_cgpms = self._get_distribution_cgpms(outputs)
+        distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
         for output, cgpms in distribution_cgpms.iteritems():
             transition_hypers(cgpms, self.grids[output], self.rng)
 
     def transition_hypers_row_divide(self, outputs=None):
-        crp_cgpms = self._get_row_divide_cgpms(outputs)
+        crp_cgpms = get_row_divide_cgpms(self.crosscat, outputs)
         for _output, cgpms in crp_cgpms.iteritems():
             transition_hypers(cgpms, self.grids['row_divide'], self.rng)
 
@@ -55,7 +97,7 @@ class GibbsCrossCat(object):
         pass
 
     def transition_hyper_grids_distribution(self, outputs=None):
-        distribution_cgpms = self._get_distribution_cgpms(outputs)
+        distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
         for output, cgpms in distribution_cgpms.iteritems():
             self.grids[output] = transition_hyper_grids(cgpms)
 
@@ -67,14 +109,14 @@ class GibbsCrossCat(object):
         pass
 
     def transition_row_assignments(self, outputs=None, rowids=None):
-        views = self._get_row_mixture_cgpms(outputs)
+        views = get_row_mixture_cgpms(self.crosscat, outputs)
         for view in views:
             rowids = rowids or get_rowids(view)
             for rowid in self.rng.permutation(rowids):
                 transition_rows(view, rowid, self.rng)
 
     def transition_view_assignments(self, outputs=None):
-        outputs = outputs or self._get_distribution_outputs()
+        outputs = outputs or get_distribution_outputs(self.crosscat)
         for output in outputs:
             self.crosscat = \
                 transition_cgpm_view_assigments(self.crosscat, [output])
@@ -82,61 +124,17 @@ class GibbsCrossCat(object):
     # Deterministic mutation.
 
     def set_hypers_distribution(self, output, hypers):
-        distribution_cgpms = self._get_distribution_cgpms([output])
+        distribution_cgpms = get_distribution_cgpms(self.crosscat, [output])
         set_hypers(distribution_cgpms[output], hypers)
 
     def set_hypers_row_divide(self, output, hypers):
-        crp_cgpm = self._get_row_divide_cgpms([output])
+        crp_cgpm = get_row_divide_cgpms(self.crosscat, [output])
         set_hypers(crp_cgpm.values()[0], hypers)
 
     def set_rowid_component(self, outputs, rowid0, rowid1):
-        views = self._get_row_mixture_cgpms(outputs)
+        views = get_row_mixture_cgpms(self.crosscat, outputs)
         for view in views:
             set_rowid_component(view, rowid0, rowid1)
 
     def set_view_assignment(self, output0, output1):
         self.crosscat = set_cgpm_view_assignment(self.crosscat, output0, output1)
-
-    # Helpers.
-
-    def _get_row_divide_outputs(self, outputs=None):
-        views = self._get_row_mixture_cgpms(outputs)
-        return [view.outputs[0] for view in views]
-
-    def _get_distribution_outputs(self):
-        return list(itertools.chain.from_iterable(
-            [view.outputs[1:] for view in self.crosscat.cgpms]
-        ))
-
-    def _get_distribution_cgpms(self, outputs=None):
-        outputs = outputs or self._get_distribution_outputs()
-        return {
-            output: get_cgpms_by_output_index(self.crosscat, output)
-            for output in outputs
-        }
-
-    def _get_row_divide_cgpms(self, outputs=None):
-        crp_outputs = self._get_row_divide_outputs(outputs)
-        return {
-            output: get_cgpms_by_output_index(self.crosscat, output)
-            for output in crp_outputs
-        }
-
-    def _get_row_mixture_cgpms(self, outputs=None):
-        outputs = outputs or self._get_distribution_outputs()
-        view_indexes = set([
-            get_cgpm_current_view_index(self.crosscat, [output])
-            for output in outputs
-        ])
-        return [self.crosscat.cgpms[i] for i in view_indexes]
-
-
-def validate_crosscat(crosscat):
-    assert isinstance(crosscat, Product)
-    for view in crosscat.cgpms:
-        assert isinstance(view, (FlexibleRowMixture))
-        assert isinstance(view.cgpm_row_divide, CRP)
-        array = view.cgpm_components_array
-        assert isinstance(array.cgpm_base, Product)
-        for component in array.cgpm_base.cgpms:
-            assert isinstance(component, DistributionCGPM)
