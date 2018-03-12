@@ -8,8 +8,9 @@ import sys
 
 import numpy as np
 
-from cgpm.utils import timer as tu
 from crosscat.LocalEngine import LocalEngine
+
+from .progress import report_progress
 
 from .transition_rows import set_rowid_component
 
@@ -304,7 +305,7 @@ def _progress(n_steps, max_time, step_idx, elapsed_secs, end=None):
         p_seconds = elapsed_secs / max_time if max_time != -1 else 0
         p_iters = float(step_idx) / n_steps
         percentage = max(p_iters, p_seconds)
-        tu.progress(percentage, sys.stdout)
+        report_progress(percentage, sys.stdout)
 
 def transition_cpp(crosscat, N=None, S=None, kernels=None, rowids=None,
         cols=None, seed=None, progress=None):

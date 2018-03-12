@@ -43,3 +43,6 @@ def transition_generic(kernels, N=None, S=None, progress=None):
             iters += 1
             continue
         break
+    if progress:
+        print '\rCompleted: %d iterations in %f seconds.' % \
+            (iters, time.time()-start)
