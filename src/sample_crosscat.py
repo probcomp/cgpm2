@@ -68,8 +68,8 @@ def generate_random_ast(distributions, rng):
     partition = generate_random_partition(partition_alpha, len(distributions), rng)
     row_dividers = [generate_random_row_divider(rng) for _i in partition]
     primitives = [
-        (d, generate_random_hyperparameters(d, rng))
-        for d in distributions
+        (i, d, generate_random_hyperparameters(d, rng))
+        for i, d in enumerate(distributions)
     ]
     return [
         (row_divider, [primitives[b] for b in block])
@@ -111,7 +111,13 @@ def core_compile_distargs(stream, i, distargs):
         for k, v in distargs.iteritems():
             core_compile_key_val(stream, i+2, k, v)
 
-def core_compile_distribution(stream, i, distribution):
+def core_compile_distribution_indexed(stream, i, distribution):
+    (column, (distname, distargs), hypers) = distribution
+    core_compile_key_list(stream, i, '%s{%d}' % (distname, column))
+    core_compile_distargs(stream, i+4, distargs)
+    core_compile_hypers(stream, i+4, hypers)
+
+def core_compile_distribution_unindexed(stream, i, distribution):
     ((distname, distargs), hypers) = distribution
     core_compile_key_list(stream, i, distname)
     core_compile_distargs(stream, i+4, distargs)
@@ -120,11 +126,11 @@ def core_compile_distribution(stream, i, distribution):
 def core_compile_distributions(stream, i, distributions):
     core_compile_key(stream, i, 'distribution models')
     for distribution in distributions:
-        core_compile_distribution(stream, i+2, distribution)
+        core_compile_distribution_indexed(stream, i+2, distribution)
 
 def core_compile_row_clustering(stream, i, distribution):
     core_compile_key(stream, i, 'row clustering model')
-    core_compile_distribution(stream, i+2, distribution)
+    core_compile_distribution_unindexed(stream, i+2, distribution)
 
 def core_compile_view(stream, i, ast_view):
     row_clustering, distributions = ast_view
@@ -141,23 +147,30 @@ def compile_ast_to_core_dsl(ast, stream=None):
 
 # Parser: Core DSL -> AST.
 
-def core_parse_distribution(distname, distargs, hypers):
+def core_parse_distribution_indexed(distname, distargs, hypers):
     return ((distname, distargs), hypers)
 
-def core_parse_distributions(distributions):
-    return [core_parse_distribution(k, v['distargs'], v['hypers'])
-        for k,v in distributions.iteritems()]
+def core_parse_distribution(ast_distribution):
+    assert len(ast_distribution) == 1
+    distname = ast_distribution.keys()[0]
+    distargs = ast_distribution.values()[0]['distargs']
+    hypers = ast_distribution.values()[0]['hypers']
+    if '{' in distname:
+        distname, index = distname.replace('}','').split('{')
+        return (int(index), (distname, distargs), hypers)
+    else:
+        return ((distname, distargs), hypers)
 
 def core_parse_view(yaml_view):
     row_clustering = yaml_view['row clustering model']
     distributions = yaml_view['distribution models']
-    ast_crp = core_parse_distributions(row_clustering)[0]
-    ast_distributions = core_parse_distributions(distributions)
+    ast_crp = core_parse_distribution(row_clustering[0])
+    ast_distributions = [core_parse_distribution(d) for d in distributions]
     return [ast_crp, ast_distributions]
 
 def parse_core_dsl_to_ast(core_dsl):
     core_dsl_yaml = yaml.load(core_dsl)
-    return [core_parse_view(yaml_view) for yaml_view in core_dsl_yaml.values()]
+    return [core_parse_view(yaml_view['view']) for yaml_view in core_dsl_yaml]
 
 # Core DSL -> Embedded DSL compiler.
 
@@ -177,7 +190,13 @@ imports = [
     'from cgpm2.product import Product',
 ]
 
-generate_output = iter(xrange(10**4))
+generate_output = iter(xrange(10**5, 10**6))
+
+def embedded_get_distname_output(ast_primitive_key):
+    if '{' in ast_primitive_key:
+        distname, index = ast_primitive_key.replace('}','').split('{')
+        return (distname, int(index))
+    return (ast_primitive_key, next(generate_output))
 
 def embedded_compile_kwarg(stream, i, k, v):
     core_compile_indent(stream, i)
@@ -185,12 +204,12 @@ def embedded_compile_kwarg(stream, i, k, v):
 
 def embedded_compile_primitive(stream, i, ast_primitive):
     assert len(ast_primitive) == 1
-    distname = ast_primitive.keys()[0]
+    distname, output = embedded_get_distname_output(ast_primitive.keys()[0])
     kwargs = ast_primitive.values()[0]
     core_compile_indent(stream, i)
     constructor = primitive_constructors[distname]
     stream.write('%s(' % (constructor))
-    embedded_compile_kwarg(stream, 0, 'outputs', [next(generate_output)])
+    embedded_compile_kwarg(stream, 0, 'outputs', [output])
     embedded_compile_kwarg(stream, 1, 'inputs', [])
     for k, v in kwargs.iteritems():
         if v is not None:
