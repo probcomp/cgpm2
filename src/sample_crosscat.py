@@ -3,12 +3,18 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
+import itertools
 
 import numpy as np
 import yaml
 
 from cStringIO import StringIO
+
 from cgpm.utils.general import get_prng
+from cgpm.utils.general import merged
+from cgpm.utils.general import mergedl
+
+from cgpm2.transition_rows import get_rowids
 
 
 def sample_hyperparameter(_distribution, _hyper, rng):
@@ -255,6 +261,93 @@ def compile_core_dsl_to_embedded_dsl(core_dsl, stream=None):
     stream.write('crosscat = Product(cgpms=[%s])' % (views,))
     return stream
 
+# CrossCat Binary -> Core DSL.
+
+def convert_primitive_to_ast(primitive, output):
+    ast_ot = primitive.outputs[0]
+    ast_nm = (primitive.name(), primitive.get_distargs() or None)
+    ast_hy = primitive.get_hypers()
+    return (ast_ot, ast_nm, ast_hy) if output else (ast_nm, ast_hy)
+
+def convert_product_to_ast(product):
+    return [convert_primitive_to_ast(cgpm, True) for cgpm in product.cgpms]
+
+def convert_view_to_ast(view):
+    cgpm_crp = view.cgpm_row_divide
+    cgpm_components_base = view.cgpm_components_array.cgpm_base
+    ast_crp = convert_primitive_to_ast(cgpm_crp, False)
+    ast_components_base = convert_product_to_ast(cgpm_components_base)
+    return (ast_crp, ast_components_base)
+
+def convert_crosscat_to_ast(crosscat):
+    return [convert_view_to_ast(view) for view in crosscat.cgpms]
+
+# CrossCat Binary -> Embedded DSL modeling.
+
+def convert_crosscat_to_embedded_dsl_model(crosscat, stream=None):
+    stream = stream or StringIO()
+    crosscat_ast = convert_crosscat_to_ast(crosscat)
+    crosscat_core_dsl = compile_ast_to_core_dsl(crosscat_ast)
+    compile_core_dsl_to_embedded_dsl(crosscat_core_dsl.getvalue(), stream)
+    return stream
+
+# CrossCat Binary -> Embedded DSL incorporates.
+
+def get_primitive_incorporates(primitive, rowid):
+    output = primitive.outputs[0]
+    observation = primitive.data.get(rowid, None)
+    return {output: observation} if observation is not None else {}
+
+def get_product_incorporates(product, rowid):
+    incorporates = [get_primitive_incorporates(c, rowid) for c in product.cgpms]
+    return mergedl(incorporates)
+
+def get_view_incorporates(view):
+    rowids = get_rowids(view)
+    cgpm_crp = view.cgpm_row_divide
+    cgpm_components = view.cgpm_components_array.cgpms
+    incorporate_crp = [get_primitive_incorporates(cgpm_crp, r) for r in rowids]
+    incorporate_components = [get_product_incorporates(cgpm_component, rowid)
+        for cgpm_component in cgpm_components.itervalues()
+        for rowid in rowids
+    ]
+    return {rowid: merged(i0, i1) for rowid, i0, i1
+        in zip(rowids, incorporate_crp, incorporate_components)}
+
+def get_crosscat_incorporates(crosscat):
+    incorporates = [get_view_incorporates(view) for view in crosscat.cgpms]
+    rowids = set(itertools.chain.from_iterable(i.keys() for i in incorporates))
+    return {
+        rowid : mergedl(i.get(rowid, {}) for i in incorporates)
+        for rowid in rowids
+    }
+
+def convert_incorporate_to_embedded_dsl(incorporate, stream):
+    rowid, observation = incorporate
+    stream.write('crosscat.incorporate(%d, observation=%s)' % (rowid, observation))
+
+def convert_crosscat_to_embedded_dsl_incorporate(crosscat, stream=None):
+    stream = stream or StringIO()
+    incorporates = get_crosscat_incorporates(crosscat)
+    for incorporate in incorporates.iteritems():
+        convert_incorporate_to_embedded_dsl(incorporate, stream)
+        stream.write('\n')
+    return stream
+
+# CrossCat Binary -> Embedded DSL.
+
+def render_trace_in_embedded_dsl(crosscat, stream=None):
+    stream = stream or StringIO()
+    convert_crosscat_to_embedded_dsl_model(crosscat, stream)
+    stream.write('\n')
+    stream.write('\n')
+    convert_crosscat_to_embedded_dsl_incorporate(crosscat, stream)
+    stream.write('\n')
+    return stream
+
+# Testing.
+
+
 distributions = [
     ('normal', None),
     ('normal', None),
@@ -263,4 +356,36 @@ distributions = [
     ('categorical', {'k':10}),
 ]
 
-rng = get_prng(1)
+if __name__ == '__main__':
+    prng = get_prng(10)
+
+    distributions = [
+        ('normal', None),
+        ('normal', None),
+        ('poisson', None),
+        ('categorical', {'k':3}),
+        ('categorical', {'k':10}),
+    ]
+
+    ast = generate_random_ast(distributions, prng)
+    print ast
+
+    core_dsl = compile_ast_to_core_dsl(ast)
+    print core_dsl.getvalue()
+
+    print parse_core_dsl_to_ast(core_dsl.getvalue())
+
+    embedded_dsl = compile_core_dsl_to_embedded_dsl(core_dsl.getvalue())
+    print embedded_dsl.getvalue()
+
+    exec(embedded_dsl.getvalue())
+
+    crosscat.incorporate(1, {0:1, 1:-1, 2: 3})
+    crosscat.incorporate(2, {4:1, 5:8})
+
+    # Go from the model -> ast -> code (will be done post inference).
+    # print convert_crosscat_to_embedded_dsl_model(crosscat).getvalue()
+    # incorporates = convert_crosscat_to_embedded_dsl_incorporate(crosscat)
+    # print incorporates.getvalue()
+
+    print render_trace_in_embedded_dsl(crosscat).getvalue()
