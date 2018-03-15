@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 
 from cStringIO import StringIO
+from collections import OrderedDict
 
 from cgpm.utils.general import get_prng
 from cgpm.utils.general import merged
@@ -189,6 +190,10 @@ imports = [
     'from cgpm2.product import Product',
 ]
 
+preamble = [
+    'nan = float(\'nan\')',
+]
+
 def embedded_get_distname_output(ast_primitive_key):
     assert '{' in ast_primitive_key
     distname, output = \
@@ -244,6 +249,9 @@ def compile_core_dsl_to_embedded_dsl(core_dsl, stream=None):
     for import_stmt in imports:
         stream.write('%s\n' % (import_stmt,))
     stream.write('\n')
+    for preamble_stmt in preamble:
+        stream.write('%s\n' % (preamble_stmt,))
+    stream.write('\n')
     for v, ast_view_full in enumerate(core_dsl_yaml):
         ast_view = ast_view_full['view']
         embedded_compile_row_mixture(stream, 0, v, ast_view)
@@ -292,6 +300,21 @@ def reindex_crp_incorporates(incorporates):
     mapping = {t:i for i,t in enumerate(tables)}
     return [{output: mapping[table]} for output, table in assignments]
 
+def get_sorted_rowids(rowids, incorporates):
+    output = next(incorporates[0].iterkeys())
+    assert all(incorporate.keys() == [output] for incorporate in incorporates)
+    assert len(incorporates) == len(rowids)
+    table_to_rowids = {}
+    for rowid, incorporate in zip(rowids, incorporates):
+        table = incorporate[output]
+        if table not in table_to_rowids:
+            table_to_rowids[table] = []
+        table_to_rowids[table].append(rowid)
+    sorted_tables = sorted(table_to_rowids)
+    return list(itertools.chain.from_iterable([
+        table_to_rowids[t] for t in sorted_tables
+    ]))
+
 def get_primitive_incorporates(primitive, rowid):
     output = primitive.outputs[0]
     observation = primitive.data.get(rowid, None)
@@ -311,33 +334,45 @@ def get_components_incorporates(components_array, rowid):
 
 def get_view_incorporates(view):
     rowids = get_rowids(view)
+    # Handle incorporate for component assignment cgpm.
     cgpm_crp = view.cgpm_row_divide
-    cgpm_components = view.cgpm_components_array
-    incorporate_crp = [get_primitive_incorporates(cgpm_crp, r) for r in rowids]
-    incorporate_crp_reindex = reindex_crp_incorporates(incorporate_crp)
-    incorporate_components = [get_components_incorporates(cgpm_components, rowid)
+    incorporate_crp = OrderedDict([
+        (rowid, get_primitive_incorporates(cgpm_crp, rowid))
         for rowid in rowids
+    ])
+    incorporate_crp_reindex = reindex_crp_incorporates(incorporate_crp.values())
+    sorted_rowids = get_sorted_rowids(rowids, incorporate_crp_reindex)
+    rowid_to_index = {rowid:i for i, rowid in enumerate(sorted_rowids)}
+    incorporate_crp_sorted = [
+        incorporate_crp_reindex[rowid_to_index[rowid]]
+        for rowid in sorted_rowids
     ]
-    return {rowid: merged(i0, i1) for rowid, i0, i1
-        in zip(rowids, incorporate_crp_reindex, incorporate_components)}
+    # Handle incorporate for component data cgpm.
+    cgpm_components = view.cgpm_components_array
+    incorporate_components_sorted = [
+        get_components_incorporates(cgpm_components, rowid)
+        for rowid in sorted_rowids
+    ]
+    # Return overall row-wise observation.
+    return OrderedDict([
+        (rowid, merged(i0, i1)) for rowid, i0, i1 in
+        zip(sorted_rowids, incorporate_crp_sorted, incorporate_components_sorted)
+    ])
 
 def get_crosscat_incorporates(crosscat):
-    incorporates = [get_view_incorporates(view) for view in crosscat.cgpms]
-    rowids = set(itertools.chain.from_iterable(i.keys() for i in incorporates))
-    return {
-        rowid : mergedl(i.get(rowid, {}) for i in incorporates)
-        for rowid in rowids
-    }
+    return [get_view_incorporates(view) for view in crosscat.cgpms]
 
-def convert_incorporate_to_embedded_dsl(incorporate, stream):
-    rowid, observation = incorporate
-    stream.write('crosscat.incorporate(%d, observation=%s)' % (rowid, observation))
+def convert_incorporates_to_embedded_dsl(incorporates, stream):
+    for rowid, observation in incorporates.iteritems():
+        stream.write('crosscat.incorporate(%d, %s)' % (rowid, observation))
+        stream.write('\n')
 
 def convert_crosscat_to_embedded_dsl_incorporate(crosscat, stream=None):
     stream = stream or StringIO()
-    incorporates = get_crosscat_incorporates(crosscat)
-    for incorporate in incorporates.iteritems():
-        convert_incorporate_to_embedded_dsl(incorporate, stream)
+    incorporates_views = get_crosscat_incorporates(crosscat)
+    for v, incorporates in enumerate(incorporates_views):
+        stream.write('# Incorporates for view %d.\n' % (v,))
+        convert_incorporates_to_embedded_dsl(incorporates, stream)
         stream.write('\n')
     return stream
 
