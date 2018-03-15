@@ -302,13 +302,20 @@ def get_product_incorporates(product, rowid):
     incorporates = [get_primitive_incorporates(c, rowid) for c in product.cgpms]
     return mergedl(incorporates)
 
+def get_components_incorporates(components_array, rowid):
+    product_incorporates_all = [get_product_incorporates(product, rowid)
+        for product in components_array.cgpms.itervalues()
+    ]
+    product_incorporates = filter(lambda x: x, product_incorporates_all)
+    assert len(product_incorporates) == 1
+    return product_incorporates[0]
+
 def get_view_incorporates(view):
     rowids = get_rowids(view)
     cgpm_crp = view.cgpm_row_divide
-    cgpm_components = view.cgpm_components_array.cgpms
+    cgpm_components = view.cgpm_components_array
     incorporate_crp = [get_primitive_incorporates(cgpm_crp, r) for r in rowids]
-    incorporate_components = [get_product_incorporates(cgpm_component, rowid)
-        for cgpm_component in cgpm_components.itervalues()
+    incorporate_components = [get_components_incorporates(cgpm_components, rowid)
         for rowid in rowids
     ]
     return {rowid: merged(i0, i1) for rowid, i0, i1
