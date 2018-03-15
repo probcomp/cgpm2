@@ -17,6 +17,8 @@ from cgpm.utils.general import mergedl
 from cgpm2.transition_rows import get_rowids
 
 
+generate_output_ast = iter(xrange(10**5, 10**6))
+
 def sample_hyperparameter(_distribution, _hyper, rng):
     """Dummy function to fetch hyperparameters for univariate distribution."""
     return round(rng.gamma(1,1), 6)
@@ -64,8 +66,10 @@ def generate_random_partition(alpha, N, rng):
 
 def generate_random_row_divider(rng):
     """Randomly sample hyperparameter for CRP in each view of the partition."""
+    output = next(generate_output_ast)
     distribution = ('crp', None)
-    return (distribution, generate_random_hyperparameters(distribution, rng))
+    hypers = generate_random_hyperparameters(distribution, rng)
+    return (output, distribution, hypers)
 
 
 def generate_random_ast(distributions, rng):
@@ -74,8 +78,8 @@ def generate_random_ast(distributions, rng):
     partition = generate_random_partition(partition_alpha, len(distributions), rng)
     row_dividers = [generate_random_row_divider(rng) for _i in partition]
     primitives = [
-        (i, d, generate_random_hyperparameters(d, rng))
-        for i, d in enumerate(distributions)
+        (output, dist, generate_random_hyperparameters(dist, rng))
+        for output, dist in enumerate(distributions)
     ]
     return [
         (row_divider, [primitives[b] for b in block])
@@ -117,26 +121,20 @@ def core_compile_distargs(stream, i, distargs):
         for k, v in distargs.iteritems():
             core_compile_key_val(stream, i+2, k, v)
 
-def core_compile_distribution_indexed(stream, i, distribution):
-    (column, (distname, distargs), hypers) = distribution
-    core_compile_key_list(stream, i, '%s{%d}' % (distname, column))
-    core_compile_distargs(stream, i+4, distargs)
-    core_compile_hypers(stream, i+4, hypers)
-
-def core_compile_distribution_unindexed(stream, i, distribution):
-    ((distname, distargs), hypers) = distribution
-    core_compile_key_list(stream, i, distname)
+def core_compile_distribution(stream, i, distribution):
+    (output, (distname, distargs), hypers) = distribution
+    core_compile_key_list(stream, i, '%s{id:%d}' % (distname, output))
     core_compile_distargs(stream, i+4, distargs)
     core_compile_hypers(stream, i+4, hypers)
 
 def core_compile_distributions(stream, i, distributions):
     core_compile_key(stream, i, 'distribution models')
     for distribution in distributions:
-        core_compile_distribution_indexed(stream, i+2, distribution)
+        core_compile_distribution(stream, i+2, distribution)
 
 def core_compile_row_clustering(stream, i, distribution):
     core_compile_key(stream, i, 'row clustering model')
-    core_compile_distribution_unindexed(stream, i+2, distribution)
+    core_compile_distribution(stream, i+2, distribution)
 
 def core_compile_view(stream, i, ast_view):
     row_clustering, distributions = ast_view
@@ -153,19 +151,14 @@ def compile_ast_to_core_dsl(ast, stream=None):
 
 # Parser: Core DSL -> AST.
 
-def core_parse_distribution_indexed(distname, distargs, hypers):
-    return ((distname, distargs), hypers)
-
 def core_parse_distribution(ast_distribution):
     assert len(ast_distribution) == 1
     distname = ast_distribution.keys()[0]
     distargs = ast_distribution.values()[0]['distargs']
     hypers = ast_distribution.values()[0]['hypers']
-    if '{' in distname:
-        distname, index = distname.replace('}','').split('{')
-        return (int(index), (distname, distargs), hypers)
-    else:
-        return ((distname, distargs), hypers)
+    assert '{' in distname
+    distname, output = distname.replace('}','').replace('id:','').split('{')
+    return (int(output), (distname, distargs), hypers)
 
 def core_parse_view(yaml_view):
     row_clustering = yaml_view['row clustering model']
@@ -196,13 +189,11 @@ imports = [
     'from cgpm2.product import Product',
 ]
 
-generate_output = iter(xrange(10**5, 10**6))
-
 def embedded_get_distname_output(ast_primitive_key):
-    if '{' in ast_primitive_key:
-        distname, index = ast_primitive_key.replace('}','').split('{')
-        return (distname, int(index))
-    return (ast_primitive_key, next(generate_output))
+    assert '{' in ast_primitive_key
+    distname, output = \
+        ast_primitive_key.replace('}','').replace('id:','').split('{')
+    return (distname, int(output))
 
 def embedded_compile_kwarg(stream, i, k, v):
     core_compile_indent(stream, i)
@@ -263,19 +254,19 @@ def compile_core_dsl_to_embedded_dsl(core_dsl, stream=None):
 
 # CrossCat Binary -> Core DSL.
 
-def convert_primitive_to_ast(primitive, output):
+def convert_primitive_to_ast(primitive):
     ast_ot = primitive.outputs[0]
     ast_nm = (primitive.name(), primitive.get_distargs() or None)
     ast_hy = primitive.get_hypers()
-    return (ast_ot, ast_nm, ast_hy) if output else (ast_nm, ast_hy)
+    return (ast_ot, ast_nm, ast_hy)
 
 def convert_product_to_ast(product):
-    return [convert_primitive_to_ast(cgpm, True) for cgpm in product.cgpms]
+    return [convert_primitive_to_ast(cgpm) for cgpm in product.cgpms]
 
 def convert_view_to_ast(view):
     cgpm_crp = view.cgpm_row_divide
     cgpm_components_base = view.cgpm_components_array.cgpm_base
-    ast_crp = convert_primitive_to_ast(cgpm_crp, False)
+    ast_crp = convert_primitive_to_ast(cgpm_crp)
     ast_components_base = convert_product_to_ast(cgpm_components_base)
     return (ast_crp, ast_components_base)
 
