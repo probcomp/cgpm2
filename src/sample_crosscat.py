@@ -293,6 +293,14 @@ def convert_crosscat_to_embedded_dsl_model(crosscat, stream=None):
 
 # CrossCat Binary -> Embedded DSL incorporates.
 
+def reindex_crp_incorporates(incorporates):
+    output = next(incorporates[0].iterkeys())
+    assert all(incorporate.keys() == [output] for incorporate in incorporates)
+    assignments = [incorporate.items()[0] for incorporate in incorporates]
+    tables = sorted(set([table for _output, table in assignments]))
+    mapping = {t:i for i,t in enumerate(tables)}
+    return [{output: mapping[table]} for output, table in assignments]
+
 def get_primitive_incorporates(primitive, rowid):
     output = primitive.outputs[0]
     observation = primitive.data.get(rowid, None)
@@ -315,11 +323,12 @@ def get_view_incorporates(view):
     cgpm_crp = view.cgpm_row_divide
     cgpm_components = view.cgpm_components_array
     incorporate_crp = [get_primitive_incorporates(cgpm_crp, r) for r in rowids]
+    incorporate_crp_reindex = reindex_crp_incorporates(incorporate_crp)
     incorporate_components = [get_components_incorporates(cgpm_components, rowid)
         for rowid in rowids
     ]
     return {rowid: merged(i0, i1) for rowid, i0, i1
-        in zip(rowids, incorporate_crp, incorporate_components)}
+        in zip(rowids, incorporate_crp_reindex, incorporate_components)}
 
 def get_crosscat_incorporates(crosscat):
     incorporates = [get_view_incorporates(view) for view in crosscat.cgpms]
