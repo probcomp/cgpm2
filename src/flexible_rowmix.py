@@ -39,14 +39,15 @@ class FlexibleRowMixture(FiniteRowMixture):
         metadata['cgpm_components_array'] = \
             self.cgpm_components_array.to_metadata()
         metadata['rowid_to_component'] = self.rowid_to_component.items()
-        metadata['factory'] = ('cgpm.compositors.flexible_rowmix',
+        metadata['factory'] = ('cgpm2.flexible_rowmix',
             'FlexibleRowMixture')
         return metadata
 
     @classmethod
     def from_metadata(cls, metadata, rng):
         cgpm_row_divide = build_cgpm(metadata['cgpm_row_divide'], rng)
-        cgpm_components_array = build_cgpm(['cgpm_components_array'], rng)
+        cgpm_components_array = \
+            build_cgpm(metadata['cgpm_components_array'], rng)
         model = cls(cgpm_row_divide, cgpm_components_array.cgpm_base, rng)
         model.rowid_to_component = dict(metadata['rowid_to_component'])
         model.cgpm_components_array = cgpm_components_array

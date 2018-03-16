@@ -204,7 +204,7 @@ class FiniteRowMixture(CGPM):
         metadata['cgpm_components_array'] = \
             self.cgpm_components_array.to_metadata()
         metadata['rowid_to_component'] = self.rowid_to_component.items()
-        metadata['factory'] = ('cgpm.finite_rowmix', 'FiniteRowMixture')
+        metadata['factory'] = ('cgpm2.finite_rowmix', 'FiniteRowMixture')
         return metadata
 
     @classmethod
