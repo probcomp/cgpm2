@@ -78,7 +78,7 @@ class Normal(DistributionCGPM):
     @simulate_many
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         DistributionCGPM.simulate(self, rowid, targets, constraints, inputs, N)
-        if rowid in self.data:
+        if rowid in self.data and not isnan(self.data[rowid]):
             return {self.outputs[0]: self.data[rowid]}
         mn, rn, sn, nun = posterior_hypers(self.N, self.sum_x, self.sum_x_sq,
             self.m, self.r, self.s, self.nu)

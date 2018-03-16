@@ -73,7 +73,7 @@ class Poisson(DistributionCGPM):
     @simulate_many
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         DistributionCGPM.simulate(self, rowid, targets, constraints, inputs, N)
-        if rowid in self.data:
+        if rowid in self.data and not isnan(self.data[rowid]):
             return {self.outputs[0]: self.data[rowid]}
         an, bn = posterior_hypers(self.N, self.sum_x, self.a, self.b)
         x = self.rng.negative_binomial(an, bn/(bn+1.))
