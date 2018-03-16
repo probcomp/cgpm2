@@ -39,8 +39,8 @@ class Categorical(DistributionCGPM):
         self.counts = np.zeros(self.k)
         self.alpha = hypers.get('alpha', 1)
 
-    def incorporate(self, rowid, observation, inputs=None):
-        DistributionCGPM.incorporate(self, rowid, observation, inputs)
+    def observe(self, rowid, observation, inputs=None):
+        DistributionCGPM.observe(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
         if not isnan(x):
             if not (x % 1 == 0 and 0 <= x < self.k):
@@ -50,8 +50,8 @@ class Categorical(DistributionCGPM):
             self.counts[x] += 1
         self.data[rowid] = x
 
-    def unincorporate(self, rowid):
-        DistributionCGPM.unincorporate(self, rowid)
+    def unobserve(self, rowid):
+        DistributionCGPM.unobserve(self, rowid)
         x = self.data.pop(rowid)
         if not isnan(x):
             self.N -= 1

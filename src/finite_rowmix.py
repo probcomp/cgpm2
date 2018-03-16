@@ -169,7 +169,7 @@ class FiniteRowMixture(CGPM):
         score_x = self.cgpm_components_array.logpdf_score()
         return score_z + score_x
 
-    def incorporate(self, rowid, observation, inputs=None):
+    def observe(self, rowid, observation, inputs=None):
         if rowid in self.rowid_to_component:
             component = {self.indexer: self.rowid_to_component[rowid]}
         else:
@@ -180,16 +180,16 @@ class FiniteRowMixture(CGPM):
                 component = self.cgpm_row_divide.simulate(
                     rowid, [self.indexer], inputs_z)
             inputs_z = get_intersection(self.inputs_z, inputs)
-            self.cgpm_row_divide.incorporate(rowid, component, inputs_z)
+            self.cgpm_row_divide.observe(rowid, component, inputs_z)
             self.rowid_to_component[rowid] = component[self.indexer]
         inputs_x = get_intersection(self.inputs_x, inputs)
         observation_x = get_intersection(self.outputs_x, observation)
         inputs_arr = merged(inputs_x, component)
-        self.cgpm_components_array.incorporate(rowid, observation_x, inputs_arr)
+        self.cgpm_components_array.observe(rowid, observation_x, inputs_arr)
 
-    def unincorporate(self, rowid):
-        obs_z, inputs_z = self.cgpm_row_divide.unincorporate(rowid)
-        obs_x, inputs_x = self.cgpm_components_array.unincorporate(rowid)
+    def unobserve(self, rowid):
+        obs_z, inputs_z = self.cgpm_row_divide.unobserve(rowid)
+        obs_x, inputs_x = self.cgpm_components_array.unobserve(rowid)
         del self.rowid_to_component[rowid]
         observation = merged(obs_z, obs_x)
         inputs = merged(inputs_z, inputs_x)

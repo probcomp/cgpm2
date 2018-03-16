@@ -290,23 +290,23 @@ def convert_crosscat_to_embedded_dsl_model(crosscat, stream=None):
     compile_core_dsl_to_embedded_dsl(crosscat_core_dsl.getvalue(), stream)
     return stream
 
-# CrossCat Binary -> Embedded DSL incorporates.
+# CrossCat Binary -> Embedded DSL observes.
 
-def reindex_crp_incorporates(incorporates):
-    output = next(incorporates[0].iterkeys())
-    assert all(incorporate.keys() == [output] for incorporate in incorporates)
-    assignments = [incorporate.items()[0] for incorporate in incorporates]
+def reindex_crp_observes(observes):
+    output = next(observes[0].iterkeys())
+    assert all(observe.keys() == [output] for observe in observes)
+    assignments = [observe.items()[0] for observe in observes]
     tables = sorted(set([table for _output, table in assignments]))
     mapping = {t:i for i,t in enumerate(tables)}
     return [{output: mapping[table]} for output, table in assignments]
 
-def get_sorted_rowids(rowids, incorporates):
-    output = next(incorporates[0].iterkeys())
-    assert all(incorporate.keys() == [output] for incorporate in incorporates)
-    assert len(incorporates) == len(rowids)
+def get_sorted_rowids(rowids, observes):
+    output = next(observes[0].iterkeys())
+    assert all(observe.keys() == [output] for observe in observes)
+    assert len(observes) == len(rowids)
     table_to_rowids = {}
-    for rowid, incorporate in zip(rowids, incorporates):
-        table = incorporate[output]
+    for rowid, observe in zip(rowids, observes):
+        table = observe[output]
         if table not in table_to_rowids:
             table_to_rowids[table] = []
         table_to_rowids[table].append(rowid)
@@ -315,64 +315,64 @@ def get_sorted_rowids(rowids, incorporates):
         table_to_rowids[t] for t in sorted_tables
     ]))
 
-def get_primitive_incorporates(primitive, rowid):
+def get_primitive_observes(primitive, rowid):
     output = primitive.outputs[0]
     observation = primitive.data.get(rowid, None)
     return {output: observation} if observation is not None else {}
 
-def get_product_incorporates(product, rowid):
-    incorporates = [get_primitive_incorporates(c, rowid) for c in product.cgpms]
-    return mergedl(incorporates)
+def get_product_observes(product, rowid):
+    observes = [get_primitive_observes(c, rowid) for c in product.cgpms]
+    return mergedl(observes)
 
-def get_components_incorporates(components_array, rowid):
-    product_incorporates_all = [get_product_incorporates(product, rowid)
+def get_components_observes(components_array, rowid):
+    product_observes_all = [get_product_observes(product, rowid)
         for product in components_array.cgpms.itervalues()
     ]
-    product_incorporates = filter(lambda x: x, product_incorporates_all)
-    assert len(product_incorporates) == 1
-    return product_incorporates[0]
+    product_observes = filter(lambda x: x, product_observes_all)
+    assert len(product_observes) == 1
+    return product_observes[0]
 
-def get_view_incorporates(view):
+def get_view_observes(view):
     rowids = get_rowids(view)
-    # Handle incorporate for component assignment cgpm.
+    # Handle observe for component assignment cgpm.
     cgpm_crp = view.cgpm_row_divide
-    incorporate_crp = OrderedDict([
-        (rowid, get_primitive_incorporates(cgpm_crp, rowid))
+    observe_crp = OrderedDict([
+        (rowid, get_primitive_observes(cgpm_crp, rowid))
         for rowid in rowids
     ])
-    incorporate_crp_reindex = reindex_crp_incorporates(incorporate_crp.values())
-    sorted_rowids = get_sorted_rowids(rowids, incorporate_crp_reindex)
+    observe_crp_reindex = reindex_crp_observes(observe_crp.values())
+    sorted_rowids = get_sorted_rowids(rowids, observe_crp_reindex)
     rowid_to_index = {rowid:i for i, rowid in enumerate(sorted_rowids)}
-    incorporate_crp_sorted = [
-        incorporate_crp_reindex[rowid_to_index[rowid]]
+    observe_crp_sorted = [
+        observe_crp_reindex[rowid_to_index[rowid]]
         for rowid in sorted_rowids
     ]
-    # Handle incorporate for component data cgpm.
+    # Handle observe for component data cgpm.
     cgpm_components = view.cgpm_components_array
-    incorporate_components_sorted = [
-        get_components_incorporates(cgpm_components, rowid)
+    observe_components_sorted = [
+        get_components_observes(cgpm_components, rowid)
         for rowid in sorted_rowids
     ]
     # Return overall row-wise observation.
     return OrderedDict([
         (rowid, merged(i0, i1)) for rowid, i0, i1 in
-        zip(sorted_rowids, incorporate_crp_sorted, incorporate_components_sorted)
+        zip(sorted_rowids, observe_crp_sorted, observe_components_sorted)
     ])
 
-def get_crosscat_incorporates(crosscat):
-    return [get_view_incorporates(view) for view in crosscat.cgpms]
+def get_crosscat_observes(crosscat):
+    return [get_view_observes(view) for view in crosscat.cgpms]
 
-def convert_incorporates_to_embedded_dsl(incorporates, stream):
-    for rowid, observation in incorporates.iteritems():
-        stream.write('crosscat.incorporate(%d, %s)' % (rowid, observation))
+def convert_observes_to_embedded_dsl(observes, stream):
+    for rowid, observation in observes.iteritems():
+        stream.write('crosscat.observe(%d, %s)' % (rowid, observation))
         stream.write('\n')
 
-def convert_crosscat_to_embedded_dsl_incorporate(crosscat, stream=None):
+def convert_crosscat_to_embedded_dsl_observe(crosscat, stream=None):
     stream = stream or StringIO()
-    incorporates_views = get_crosscat_incorporates(crosscat)
-    for v, incorporates in enumerate(incorporates_views):
+    observes_views = get_crosscat_observes(crosscat)
+    for v, observes in enumerate(observes_views):
         stream.write('# Incorporates for view %d.\n' % (v,))
-        convert_incorporates_to_embedded_dsl(incorporates, stream)
+        convert_observes_to_embedded_dsl(observes, stream)
         stream.write('\n')
     return stream
 
@@ -383,7 +383,7 @@ def render_trace_in_embedded_dsl(crosscat, stream=None):
     convert_crosscat_to_embedded_dsl_model(crosscat, stream)
     stream.write('\n')
     stream.write('\n')
-    convert_crosscat_to_embedded_dsl_incorporate(crosscat, stream)
+    convert_crosscat_to_embedded_dsl_observe(crosscat, stream)
     stream.write('\n')
     return stream
 
@@ -422,12 +422,12 @@ if __name__ == '__main__':
 
     exec(embedded_dsl.getvalue())
 
-    crosscat.incorporate(1, {0:1, 1:-1, 2: 3})
-    crosscat.incorporate(2, {4:1, 5:8})
+    crosscat.observe(1, {0:1, 1:-1, 2: 3})
+    crosscat.observe(2, {4:1, 5:8})
 
     # Go from the model -> ast -> code (will be done post inference).
     # print convert_crosscat_to_embedded_dsl_model(crosscat).getvalue()
-    # incorporates = convert_crosscat_to_embedded_dsl_incorporate(crosscat)
-    # print incorporates.getvalue()
+    # observes = convert_crosscat_to_embedded_dsl_observe(crosscat)
+    # print observes.getvalue()
 
     print render_trace_in_embedded_dsl(crosscat).getvalue()

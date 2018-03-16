@@ -61,7 +61,7 @@ class RandomForest(DistributionCGPM):
         self.class_to_index = OrderedDict()
         self.regressor = None
 
-    def incorporate(self, rowid, observation, inputs=None):
+    def observe(self, rowid, observation, inputs=None):
         assert rowid not in self.data
         assert observation.keys() == self.outputs
         x = observation[self.outputs[0]]
@@ -72,7 +72,7 @@ class RandomForest(DistributionCGPM):
         self.data_yraw[rowid] = y_raw
         self.data_ydum[rowid] = y_dum
 
-    def unincorporate(self, rowid):
+    def unobserve(self, rowid):
         x = self.data.pop(rowid)
         y_raw = self.data_yraw.pop(rowid)
         del self.data_ydum[rowid]

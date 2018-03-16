@@ -41,8 +41,8 @@ class Poisson(DistributionCGPM):
         assert self.a > 0
         assert self.b > 0
 
-    def incorporate(self, rowid, observation, inputs=None):
-        DistributionCGPM.incorporate(self, rowid, observation, inputs)
+    def observe(self, rowid, observation, inputs=None):
+        DistributionCGPM.observe(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
         if not isnan(x):
             if not (x % 1 == 0 and x >= 0):
@@ -52,8 +52,8 @@ class Poisson(DistributionCGPM):
             self.sum_log_fact_x += gammaln(x+1)
         self.data[rowid] = x
 
-    def unincorporate(self, rowid):
-        DistributionCGPM.unincorporate(self, rowid)
+    def unobserve(self, rowid):
+        DistributionCGPM.unobserve(self, rowid)
         x = self.data.pop(rowid)
         if not isnan(x):
             self.N -= 1

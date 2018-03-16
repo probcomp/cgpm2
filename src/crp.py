@@ -35,8 +35,8 @@ class CRP(DistributionCGPM):
         self.counts = OrderedDict()
         self.alpha = hypers.get('alpha', 1.)
 
-    def incorporate(self, rowid, observation, inputs=None):
-        DistributionCGPM.incorporate(self, rowid, observation, inputs)
+    def observe(self, rowid, observation, inputs=None):
+        DistributionCGPM.observe(self, rowid, observation, inputs)
         x = int(observation[self.outputs[0]])
         assert x in self.support()
         self.N += 1
@@ -45,8 +45,8 @@ class CRP(DistributionCGPM):
         self.counts[x] += 1
         self.data[rowid] = x
 
-    def unincorporate(self, rowid):
-        DistributionCGPM.unincorporate(self, rowid)
+    def unobserve(self, rowid):
+        DistributionCGPM.unobserve(self, rowid)
         x = self.data.pop(rowid)
         self.N -= 1
         self.counts[x] -= 1
@@ -152,7 +152,7 @@ class CRP(DistributionCGPM):
         """Retrieve a list of possible tables for rowid.
 
         If rowid is an existing customer, then the standard Gibbs proposal
-        tables  are returned (i.e. with the rowid unincorporated). If
+        tables  are returned (i.e. with the rowid unobserved). If
         rowid was a singleton table, then the table is re-used as a proposal
         and m-1 additional auxiliary tables are proposed, else m auxiliary
         tables are returned.

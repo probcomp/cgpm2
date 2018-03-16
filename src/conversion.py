@@ -45,7 +45,7 @@ def convert_view_to_rowmixture(view):
         obs_z = {cgpm_row_divide.outputs[0]: assignment}
         obs_x = {c: view.X[c][rowid] for c in component_base_cgpms.outputs}
         observation = merged(obs_z, obs_x)
-        cgpm_row_mixture.incorporate(rowid, observation)
+        cgpm_row_mixture.observe(rowid, observation)
     return cgpm_row_mixture
 
 def convert_cgpm_state_to_cgpm2(state):

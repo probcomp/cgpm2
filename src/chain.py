@@ -46,13 +46,13 @@ class Chain(CGPM):
         self.extraneous = retrieve_extraneous_inputs(self.cgpms, self.v_to_c)
         self.topo = topological_sort(self.adjacency)
 
-    def incorporate(self, rowid, observation, inputs=None):
+    def observe(self, rowid, observation, inputs=None):
         for cgpm in self.cgpms:
-            incorporate_one(cgpm, rowid, observation, inputs)
+            observe_one(cgpm, rowid, observation, inputs)
 
-    def unincorporate(self, rowid):
+    def unobserve(self, rowid):
         observations_list, inputs_list = zip(*[
-            unincorporate_one(cgpm, rowid)
+            unobserve_one(cgpm, rowid)
             for cgpm in self.cgpms
         ])
         observations_dict = mergedl(observations_list)
@@ -159,14 +159,14 @@ class Chain(CGPM):
         return sample, weight
 
 
-def incorporate_one(cgpm, rowid, observation, inputs):
+def observe_one(cgpm, rowid, observation, inputs):
     observation_cgpm = get_intersection(cgpm.outputs, observation)
     if observation_cgpm:
         inputs_cgpm = get_intersection(cgpm.inputs, inputs)
-        cgpm.incorporate(rowid, observation_cgpm, inputs_cgpm)
+        cgpm.observe(rowid, observation_cgpm, inputs_cgpm)
 
-def unincorporate_one(cgpm, rowid):
+def unobserve_one(cgpm, rowid):
     try:
-        return cgpm.unincorporate(rowid)
+        return cgpm.unobserve(rowid)
     except Exception:
         return {}, {}

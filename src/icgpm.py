@@ -35,7 +35,7 @@ class CGPM(object):
         """
         raise NotImplementedError
 
-    def incorporate(self, rowid, observation, inputs=None):
+    def observe(self, rowid, observation, inputs=None):
         """Record an observation for `rowid` into the dataset.
 
         rowid : int
@@ -50,8 +50,8 @@ class CGPM(object):
         """
         raise NotImplementedError
 
-    def unincorporate(self, rowid):
-        """Remove and return all incorporated observations of `rowid`."""
+    def unobserve(self, rowid):
+        """Remove and return all observed observations of `rowid`."""
         raise NotImplementedError
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
@@ -67,7 +67,7 @@ class CGPM(object):
             The keys of `targets` must be a subset of the `output` variables.
             If `rowid` corresponds to an existing member, it is an error for
             `targets` to contain any output variable for that `rowid` which has
-            already been incorporated.
+            already been observed.
 
         constraints : dict{int:value}, optional
             The keys of `constraints` must be a subset of the `output`
@@ -75,7 +75,7 @@ class CGPM(object):
             constraints serve as probabilistic conditions on the multivariate
             output distribution. If `rowid` corresponds to an existing member,
             it is an error for `constraints` to contain any output variable for
-            that `rowid` which has already been incorporated.
+            that `rowid` which has already been observed.
 
         inputs : dict{int:value}, optional
             The keys of `inputs` must contain all the CGPM's `input` variables,
@@ -97,7 +97,7 @@ class CGPM(object):
         query : list<int>
             List of `output` variables to simulate. If `rowid` corresponds to an
             existing member, it is an error for `targets` to contain any output
-            variable for that `rowid` which has already been incorporated.
+            variable for that `rowid` which has already been observed.
 
         constraints : dict{int:value}, optional
             The keys of `constraints` must be a subset of the `output`
@@ -105,7 +105,7 @@ class CGPM(object):
             constraints serve as probabilistic conditions on the multivariate
             output distribution. If `rowid` corresponds to an existing member,
             it is an error for `constraints` to contain any output variable for
-            that `rowid` which has already been incorporated.
+            that `rowid` which has already been observed.
 
         inputs : dict{int:value}, optional
             The keys of `inputs` must contain all the CGPM's `input` variables,

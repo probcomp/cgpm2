@@ -49,8 +49,8 @@ class Normal(DistributionCGPM):
         assert self.r > 0.
         assert self.nu > 0.
 
-    def incorporate(self, rowid, observation, inputs=None):
-        DistributionCGPM.incorporate(self, rowid, observation, inputs)
+    def observe(self, rowid, observation, inputs=None):
+        DistributionCGPM.observe(self, rowid, observation, inputs)
         x = observation[self.outputs[0]]
         if not isnan(x):
             self.N += 1.
@@ -58,8 +58,8 @@ class Normal(DistributionCGPM):
             self.sum_x_sq += x*x
         self.data[rowid] = x
 
-    def unincorporate(self, rowid):
-        DistributionCGPM.unincorporate(self, rowid)
+    def unobserve(self, rowid):
+        DistributionCGPM.unobserve(self, rowid)
         x = self.data.pop(rowid)
         if not isnan(x):
             self.N -= 1

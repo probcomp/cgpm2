@@ -48,7 +48,7 @@ def get_cgpm_view_proposal_existing_one(view, cgpm_base_list, dataset_list):
     proposal = reduce(add_cgpm, cgpm_base_list, view)
     for dataset in dataset_list:
         for rowid, observation in dataset:
-            proposal.incorporate(rowid, observation)
+            proposal.observe(rowid, observation)
     return proposal
 
 def get_cgpm_view_proposal_singleton_one(crosscat, cgpm_base_list, dataset_list):
@@ -59,7 +59,7 @@ def get_cgpm_view_proposal_singleton_one(crosscat, cgpm_base_list, dataset_list)
         rng=crosscat.rng)
     for dataset in dataset_list:
         for rowid, observation in dataset:
-            view.incorporate(rowid, observation)
+            view.observe(rowid, observation)
     return view
 
 def get_cgpm_view_proposals_existing(crosscat, outputs):

@@ -30,13 +30,13 @@ class DistributionCGPM(CGPM):
             distargs=None, rng=None):
         raise NotImplementedError()
 
-    def incorporate(self, rowid, observation, inputs=None):
+    def observe(self, rowid, observation, inputs=None):
         if rowid in self.data:
             raise ValueError('rowid already exists: %d' % (rowid,))
         assert not inputs
         assert observation.keys() == self.outputs
 
-    def unincorporate(self, rowid):
+    def unobserve(self, rowid):
         if rowid not in self.data:
             raise ValueError('no such rowid: %s' % (repr(rowid)),)
 

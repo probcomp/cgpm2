@@ -38,17 +38,17 @@ class FlexibleArray(CGPM):
     def logpdf_score(self):
         return sum(cgpm.logpdf_score for cgpm in self.cgpms.itervalues())
 
-    def incorporate(self, rowid, observation, inputs=None):
+    def observe(self, rowid, observation, inputs=None):
         i_select = inputs.pop(self.indexer)
         cgpm = self.get_cgpm(i_select)
-        cgpm.incorporate(rowid, observation, inputs)
+        cgpm.observe(rowid, observation, inputs)
         self.rowid_to_index[rowid] = i_select
 
-    def unincorporate(self, rowid):
+    def unobserve(self, rowid):
         i_select = self.rowid_to_index[rowid]
         del self.rowid_to_index[rowid]
         cgpm = self.get_cgpm(i_select)
-        return cgpm.unincorporate(rowid)
+        return cgpm.unobserve(rowid)
 
     def transition(self, **kwargs):
         return
