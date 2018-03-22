@@ -263,6 +263,17 @@ def compile_core_dsl_to_embedded_dsl(core_dsl, stream=None):
     stream.write('crosscat = Product(cgpms=[%s])' % (views,))
     return stream
 
+# Embedded DSL -> CrossCat Binary.
+
+def interpret_embedded_dsl(embedded_dsl):
+    exec(embedded_dsl)
+    return crosscat
+
+def interpret_ast(ast):
+    core_dsl = compile_ast_to_core_dsl(ast)
+    embedded_dsl = compile_core_dsl_to_embedded_dsl(core_dsl.getvalue())
+    return interpret_embedded_dsl(embedded_dsl.getvalue())
+
 # CrossCat Binary -> Core DSL.
 
 def convert_primitive_to_ast(primitive):
