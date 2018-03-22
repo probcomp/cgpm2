@@ -428,8 +428,11 @@ def get_primitive_distribution(cgpm):
         hypers = cgpm.get_hypers()
         maker = 'make_gamma_poisson(%1.4f, %1.4f)' \
             % (hypers['a'], hypers['b'])
+    elif cgpm.name() == 'categorical':
+        hypers = cgpm.get_hypers()
+        maker = 'make_symm_dirichlet_categorical(%1.4f)' % (hypers['alpha'])
     else:
-        maker = 'make_nig_normal(1,1,1,1)'
+        assert False, 'Unknown distribution: %s' % (cgpm.name(),)
     return (varname, maker)
 
 def get_product_distributions(product):
