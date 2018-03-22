@@ -15,7 +15,9 @@ from cgpm.utils.general import get_prng
 from cgpm.utils.general import merged
 from cgpm.utils.general import mergedl
 
+from cgpm2.transition_crosscat import get_distribution_outputs
 from cgpm2.transition_rows import get_rowids
+from cgpm2.transition_views import get_cgpm_current_view_index
 
 
 generate_output_ast = iter(xrange(10**5, 10**6))
@@ -387,6 +389,144 @@ def render_trace_in_embedded_dsl(crosscat, stream=None):
     stream.write('\n')
     return stream
 
+# CrossCat Binary -> VentureScript probabilistic program.
+
+def get_variable_name(output):
+    return 'var-%d' % (output,)
+
+def get_primitive_distribution(cgpm):
+    # XXX Write the actual distribution.
+    output = cgpm.outputs[0]
+    return (get_variable_name(output), 'make_suff_stat_normal(0,1)')
+
+def get_product_distributions(product):
+    return [get_primitive_distribution(cgpm) for cgpm in product.cgpms]
+
+def get_array_distributions(cgpm_components_array, tables):
+    return [
+        get_product_distributions(cgpm_components_array.cgpms[table])
+        for table in tables
+    ]
+
+def tranpose_product_list(products):
+    num_distributions = len(products[0])
+    return [[prod[i] for prod in products] for i in xrange(num_distributions)]
+
+def get_crp_tables_weights(crp_cgpm):
+    tables = sorted(crp_cgpm.counts.keys())
+    counts = [crp_cgpm.counts[table] for table in tables]
+    sum_counts = float(sum(counts))
+    return tables, [c/sum_counts for c in counts]
+
+def get_view_representation(view):
+    # Obtain the mixture weights from crp.
+    crp_cgpm = view.cgpm_row_divide
+    tables, weights = get_crp_tables_weights(crp_cgpm)
+    # Obtain primitive distributions from components array.
+    cgpm_components = view.cgpm_components_array
+    product_distributions = get_array_distributions(cgpm_components, tables)
+    # Transpose list of products into product of lists.
+    primitive_distributions = tranpose_product_list(product_distributions)
+    assert all(len(p) == len(weights) for p in primitive_distributions)
+    return weights, primitive_distributions
+
+def get_variables_to_view_assignment(crosscat):
+    distribution_outputs = sorted(get_distribution_outputs(crosscat))
+    view_idx = [
+        get_cgpm_current_view_index(crosscat, [output])
+        for output in distribution_outputs
+    ]
+    return [(get_variable_name(output), v_idx)
+        for (output, v_idx) in zip(distribution_outputs, view_idx)]
+
+def convert_trace_to_venturescript_ast(crosscat):
+    weights_list, distributions_view = zip(*[
+        get_view_representation(view) for view in crosscat.cgpms
+    ])
+    variable_to_view = get_variables_to_view_assignment(crosscat)
+    return distributions_view, variable_to_view, weights_list
+
+def compile_distributions_view(stream, distributions_list, view_idx, terminal):
+    for i, distributions in enumerate(distributions_list):
+        varnames, cgpms = zip(*distributions)
+        varname = varnames[0]
+        assert all(v==varname for v in varnames)
+        core_compile_indent(stream, 4)
+        stream.write('["%s",\t[%d, [\n' % (varname, view_idx))
+        for j, cgpm in enumerate(cgpms):
+            core_compile_indent(stream, 8)
+            stream.write('%s' % (cgpm,))
+            if j < len(cgpms) - 1:
+                stream.write(',')
+            stream.write('\n')
+        core_compile_indent(stream, 8)
+        stream.write(']]]')
+        if i < len(distributions_list) - 1 or not terminal:
+            stream.write(',')
+        stream.write('\n')
+
+def compile_distributions_list(stream, distributions_view):
+    stream.write('assume variable_to_distributions = dict(\n')
+    for i, distributions_list in enumerate(distributions_view):
+        core_compile_indent(stream, 4)
+        stream.write('\\\\ Mixture models in view %d.\n' % (i,))
+        terminal = (i == len(distributions_list) - 1)
+        compile_distributions_view(stream, distributions_list, i, terminal)
+    stream.write(');')
+
+def compile_weights_list(stream, weights_list):
+    stream.write('assume view_to_mixture_weights = dict(\n')
+    for i, weights in enumerate(weights_list):
+        core_compile_indent(stream, 4)
+        stream.write('[%d,\t simplex(%s)]' % (i, ', '.join(map(str, weights))))
+        if i < len(weights_list) - 1:
+            stream.write(',')
+        stream.write('\n')
+    stream.write(');')
+
+def compile_variable_to_view_assignment(stream, variable_to_view):
+    stream.write('assume variable_to_view_assignment = dict(\n')
+    for i, (varname, view_idx) in enumerate(variable_to_view):
+        core_compile_indent(stream, 4)
+        stream.write('["%s",\t%d]' % (varname, view_idx))
+        if i < len(variable_to_view) - 1:
+            stream.write(',')
+        stream.write('\n')
+    stream.write(');')
+
+def compile_sample_row_mixture_assignment(stream):
+    stream.write(
+'''assume sample_row_mixture_assignment = mem((rowid, view) ~> {
+    weights = view_to_mixture_weights[view];
+    categorical(weights) #mixture_assignment:pair(rowid, view)
+});''')
+
+def compile_sample_variable(stream):
+    stream.write(
+'''assume sample_variable = (rowid, variable) ~> {
+    variable_distributions = variable_to_distributions[variable];
+    view = variable_distributions[0];
+    distributions = variable_distributions[1];
+    row_mixture_assignment = sample_row_mixture_assignment(rowid, view);
+    sampler = distributions[row_mixture_assignment];
+    sampler() #cell_value:pair(rowid, variable)
+};''')
+
+def render_trace_in_venturescript(crosscat, stream=None):
+    stream = stream or StringIO()
+    distributions_list, variable_to_view, weights_list = \
+        convert_trace_to_venturescript_ast(crosscat)
+    compile_distributions_list(stream, distributions_list)
+    stream.write('\n\n')
+    # compile_variable_to_view_assignment(stream, variable_to_view)
+    # stream.write('\n\n')
+    compile_weights_list(stream, weights_list)
+    stream.write('\n\n')
+    compile_sample_row_mixture_assignment(stream)
+    stream.write('\n\n')
+    compile_sample_variable(stream)
+    return stream
+
 # Testing.
 
 
@@ -431,3 +571,5 @@ if __name__ == '__main__':
     # print observes.getvalue()
 
     print render_trace_in_embedded_dsl(crosscat).getvalue()
+
+    print render_trace_in_venturescript(crosscat).getvalue()
