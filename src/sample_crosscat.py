@@ -439,10 +439,13 @@ def get_product_distributions(product):
     return [get_primitive_distribution(cgpm) for cgpm in product.cgpms]
 
 def get_array_distributions(cgpm_components_array, tables):
-    return [
-        get_product_distributions(cgpm_components_array.cgpms[table])
-        for table in tables
-    ]
+    if len(cgpm_components_array.cgpms) == 0:
+        return [get_product_distributions(cgpm_components_array.cgpm_base)]
+    else:
+        return [
+            get_product_distributions(cgpm_components_array.cgpms[table])
+            for table in tables
+        ]
 
 def tranpose_product_list(products):
     num_distributions = len(products[0])
@@ -450,12 +453,17 @@ def tranpose_product_list(products):
 
 def get_crp_tables_weights(crp_cgpm):
     tables = sorted(crp_cgpm.counts.keys())
-    counts = [crp_cgpm.counts[table] for table in tables]
-    sum_counts = float(sum(counts))
-    return tables, [c/sum_counts for c in counts]
+    if not tables:
+        return [0, [1.]]
+    else:
+        counts = [crp_cgpm.counts[table] for table in tables]
+        sum_counts = float(sum(counts))
+        return tables, [c/sum_counts for c in counts]
 
 def get_view_observes_crp_vs(view):
     rowids = get_rowids(view)
+    if not rowids:
+        return []
     cgpm_crp = view.cgpm_row_divide
     observe_crp = OrderedDict([
         (rowid, get_primitive_observes(cgpm_crp, rowid))
@@ -467,6 +475,8 @@ def get_view_observes_crp_vs(view):
 
 def get_view_observes_data_vs(view):
     rowids = get_rowids(view)
+    if not rowids:
+        return []
     cgpm_components = view.cgpm_components_array
     observe_components = [
         get_components_observes(cgpm_components, rowid)
