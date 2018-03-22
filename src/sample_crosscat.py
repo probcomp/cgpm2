@@ -413,6 +413,10 @@ VSView = namedtuple('VSView', [
 def get_variable_name(output):
     return 'var-%d' % (output,)
 
+def convert_variable_name(varname, schema):
+    output = int(varname.split('-')[1])
+    return schema[output][0]
+
 def get_primitive_distribution(cgpm):
     varname = get_variable_name(cgpm.outputs[0])
     if cgpm.name() == 'normal':
@@ -504,15 +508,17 @@ def get_variables_to_view_assignment(crosscat):
 def convert_trace_to_venturescript_ast(crosscat):
     vs_views = [get_view_representation(view) for view in crosscat.cgpms]
     variable_to_view = get_variables_to_view_assignment(crosscat)
-    return vs_views
+    return vs_views, variable_to_view
 
-def compile_distributions_view(stream, distributions_list, view_idx, terminal):
+def compile_distributions_view(stream, distributions_list, view_idx, terminal,
+        schema):
     for i, distributions in enumerate(distributions_list):
         varnames, cgpms = zip(*distributions)
         varname = varnames[0]
         assert all(v==varname for v in varnames)
+        varname_proper = convert_variable_name(varname, schema)
         core_compile_indent(stream, 4)
-        stream.write('["%s",\t[%d, [\n' % (varname, view_idx))
+        stream.write('["%s",\t[%d, [\n' % (varname_proper, view_idx))
         for j, cgpm in enumerate(cgpms):
             core_compile_indent(stream, 8)
             stream.write('%s' % (cgpm,))
@@ -527,121 +533,125 @@ def compile_distributions_view(stream, distributions_list, view_idx, terminal):
             stream.write(',')
         stream.write('\n')
 
-def compile_distributions_list(stream, distributions_view):
+def compile_distributions_list(stream, distributions_view, schema):
     stream.write('assume variable_to_distributions = dict(\n')
-    for i, distributions_list in enumerate(distributions_view):
+    for view_idx, distributions_list in enumerate(distributions_view):
         core_compile_indent(stream, 4)
-        stream.write('// Mixture models in view %d.\n' % (i,))
-        terminal = (i == len(distributions_view) - 1)
-        compile_distributions_view(stream, distributions_list, i, terminal)
+        stream.write('// Mixture models in view %d.\n' % (view_idx,))
+        terminal = (view_idx == len(distributions_view) - 1)
+        compile_distributions_view(stream, distributions_list,
+            view_idx, terminal, schema)
     stream.write(');')
 
 def compile_weights_list(stream, weights_list):
     stream.write('assume view_to_mixture_weights = dict(\n')
     for i, weights in enumerate(weights_list):
         core_compile_indent(stream, 4)
-        stream.write('[%d,\t simplex(%s)]' % (i, ', '.join(map(str, weights))))
+        weights_str = ','.join(['%1.4f' % (w,) for w in weights])
+        stream.write('[%d,\t simplex(%s)]' % (i, weights_str))
         if i < len(weights_list) - 1:
             stream.write(',')
         stream.write('\n')
     stream.write(');')
 
-def compile_variable_to_view_assignment(stream, variable_to_view):
+def compile_variable_to_view_assignment(stream, variable_to_view, schema):
     stream.write('assume variable_to_view_assignment = dict(\n')
-    for i, (varname, view_idx) in enumerate(variable_to_view):
+    # Sort by view_idx.
+    variable_to_view_sorted = sorted(variable_to_view, key=lambda t: t[1])
+    for i, (varname, view_idx) in enumerate(variable_to_view_sorted):
         core_compile_indent(stream, 4)
-        stream.write('["%s",\t%d]' % (varname, view_idx))
+        varname_proper = convert_variable_name(varname, schema)
+        stream.write('["%s", %d]' % (varname_proper, view_idx))
         if i < len(variable_to_view) - 1:
             stream.write(',')
         stream.write('\n')
     stream.write(');')
 
-def compile_sample_row_mixture_assignment(stream):
+def compile_get_row_mixture_assignment(stream):
     stream.write(
-'''assume sample_row_mixture_assignment = mem((rowid, view) ~> {
+'''assume get_row_mixture_assignment = mem((rowid, view) ~> {
     weights = view_to_mixture_weights[view];
     categorical(weights) #mixture_assignment:pair(rowid, view)
 });''')
 
-def compile_sample_variable(stream):
+def compile_get_cell_value(stream):
     stream.write(
-'''assume sample_variable = (rowid, variable) ~> {
+'''assume get_cell_value = (rowid, variable) ~> {
     variable_distributions = variable_to_distributions[variable];
     view = variable_distributions[0];
     distributions = variable_distributions[1];
-    row_mixture_assignment = sample_row_mixture_assignment(rowid, view);
+    row_mixture_assignment = get_row_mixture_assignment(rowid, view);
     sampler = distributions[row_mixture_assignment];
     sampler() #cell_value:pair(rowid, variable)
 };''')
 
 def compile_observes_crp_list(stream, observes_crp_list):
+    stream.write('// Observe row assignments of each rowid in each view.\n')
     for view_idx, observes_crp in enumerate(observes_crp_list):
         for rowid, assignment in observes_crp:
             stream.write(
-                'observe sample_row_mixture_assignment(rowid: %d, view:%d) = %d;'
+                'observe get_row_mixture_assignment(rowid: %d, view:%d) = %d;'
                 % (rowid, view_idx, assignment))
             stream.write('\n')
 
-def compile_observes_data_list(stream, observes_data_list):
+def compile_observes_data_list(stream, observes_data_list, schema):
+    stream.write('// Observe datum from the training set.\n')
     for observes_data in observes_data_list:
         for rowid, varname, datum in observes_data:
+            varname_proper = convert_variable_name(varname, schema)
             stream.write(
-                'observe sample_variable(rowid:%d, variable:"%s") = %d;'
-                % (rowid, varname, datum))
+                'observe get_cell_value(rowid:%d, "%s") = %1.4f;'
+                % (rowid, varname_proper, datum))
             stream.write('\n')
 
-def render_trace_in_venturescript(crosscat, stream=None):
+def render_trace_in_venturescript(crosscat, schema, observes=None, stream=None):
     stream = stream or StringIO()
-    vs_views = convert_trace_to_venturescript_ast(crosscat)
+    vs_views, variable_to_view = convert_trace_to_venturescript_ast(crosscat)
     # Compile the distributions.
     distributions_list = [v.distributions for v in vs_views]
-    compile_distributions_list(stream, distributions_list)
+    compile_distributions_list(stream, distributions_list, schema)
     stream.write('\n\n')
     # Compile the variable to view assignments.
-    # compile_variable_to_view_assignment(stream, variable_to_view)
-    # stream.write('\n\n')
+    #
+    # XXX These identities have been moved into the distributions section.
+    compile_variable_to_view_assignment(stream, variable_to_view, schema)
+    stream.write('\n\n')
+    #
     # Compile the mixture weights.
     weights_list = [v.weights for v in vs_views]
     compile_weights_list(stream, weights_list)
     stream.write('\n\n')
     # Compile sampler for (rowid, view) to mixture assignments.
-    compile_sample_row_mixture_assignment(stream)
+    compile_get_row_mixture_assignment(stream)
     stream.write('\n\n')
     # Compile sampler for (rowid, variable) to datum.
-    compile_sample_variable(stream)
+    compile_get_cell_value(stream)
     stream.write('\n\n')
-    # Compile observes for CRP.
-    observes_crp_list = [v.observes_crp for v in vs_views]
-    compile_observes_crp_list(stream, observes_crp_list)
-    stream.write('\n\n')
-    # Compile observes for data.
-    observes_data_list = [v.observes_data for v in vs_views]
-    compile_observes_data_list(stream, observes_data_list)
+    if observes:
+        # Compile observes for CRP.
+        observes_crp_list = [v.observes_crp for v in vs_views]
+        compile_observes_crp_list(stream, observes_crp_list)
+        stream.write('\n')
+        # Compile observes for data.
+        observes_data_list = [v.observes_data for v in vs_views]
+        compile_observes_data_list(stream, observes_data_list, schema)
     return stream
 
 # Testing.
 
 
-distributions = [
-    ('normal', None),
-    ('normal', None),
-    ('poisson', None),
-    ('categorical', {'k':3}),
-    ('categorical', {'k':10}),
-]
-
 if __name__ == '__main__':
     prng = get_prng(10)
 
-    distributions = [
-        ('normal', None),
-        ('normal', None),
-        ('poisson', None),
-        ('categorical', {'k':3}),
-        ('categorical', {'k':10}),
+    schema = [
+        ['perigee_km',      ('normal', None)],
+        ['apogee_km',       ('normal', None)],
+        ['failures',        ('poisson', None)],
+        ['class_of_orbit',  ('categorical', {'k':3})],
+        ['type_of_orbit',   ('categorical', {'k':10})],
     ]
 
-    ast = generate_random_ast(distributions, prng)
+    ast = generate_random_ast(schema, prng)
     print ast
 
     core_dsl = compile_ast_to_core_dsl(ast)
@@ -664,4 +674,4 @@ if __name__ == '__main__':
 
     print render_trace_in_embedded_dsl(crosscat).getvalue()
 
-    print render_trace_in_venturescript(crosscat).getvalue()
+    print render_trace_in_venturescript(crosscat, schema).getvalue()
