@@ -4,12 +4,13 @@
 # Released under Apache 2.0; refer to LICENSE.txt.
 
 import itertools
-
-import numpy as np
 import yaml
 
 from cStringIO import StringIO
 from collections import OrderedDict
+from collections import namedtuple
+
+import numpy as np
 
 from cgpm.utils.general import get_prng
 from cgpm.utils.general import merged
@@ -391,13 +392,30 @@ def render_trace_in_embedded_dsl(crosscat, stream=None):
 
 # CrossCat Binary -> VentureScript probabilistic program.
 
+VSView = namedtuple('VSView', [
+    'weights',
+    'distributions',
+    'observes_crp',
+    'observes_data'
+])
+
 def get_variable_name(output):
     return 'var-%d' % (output,)
 
 def get_primitive_distribution(cgpm):
-    # XXX Write the actual distribution.
-    output = cgpm.outputs[0]
-    return (get_variable_name(output), 'make_suff_stat_normal(0,1)')
+    varname = get_variable_name(cgpm.outputs[0])
+    if cgpm.name() == 'normal':
+        # XXX Convert the hypers to (m, V, a, b) format.
+        hypers = cgpm.get_hypers()
+        maker = 'make_nig_normal(%1.4f, %1.4f, %1.4f, %1.4f)' % \
+            (hypers['m'], hypers['r'], hypers['s'], hypers['nu'])
+    elif cgpm.name() == 'poisson':
+        hypers = cgpm.get_hypers()
+        maker = 'make_gamma_poisson(%1.4f, %1.4f)' \
+            % (hypers['a'], hypers['b'])
+    else:
+        maker = 'make_nig_normal(1,1,1,1)'
+    return (varname, maker)
 
 def get_product_distributions(product):
     return [get_primitive_distribution(cgpm) for cgpm in product.cgpms]
@@ -418,6 +436,30 @@ def get_crp_tables_weights(crp_cgpm):
     sum_counts = float(sum(counts))
     return tables, [c/sum_counts for c in counts]
 
+def get_view_observes_crp_vs(view):
+    rowids = get_rowids(view)
+    cgpm_crp = view.cgpm_row_divide
+    observe_crp = OrderedDict([
+        (rowid, get_primitive_observes(cgpm_crp, rowid))
+        for rowid in rowids
+    ])
+    observe_crp_reindex = reindex_crp_observes(observe_crp.values())
+    return [(rowid, obs.values()[0]) for
+        rowid, obs in zip(rowids, observe_crp_reindex)]
+
+def get_view_observes_data_vs(view):
+    rowids = get_rowids(view)
+    cgpm_components = view.cgpm_components_array
+    observe_components = [
+        get_components_observes(cgpm_components, rowid)
+        for rowid in rowids
+    ]
+    def convert_observation(rowid, obs):
+        return ((rowid, get_variable_name(k), v) for k,v in obs.iteritems())
+    return list(itertools.chain.from_iterable(
+        convert_observation(rowid, obs) for obs in observe_components
+    ))
+
 def get_view_representation(view):
     # Obtain the mixture weights from crp.
     crp_cgpm = view.cgpm_row_divide
@@ -428,7 +470,16 @@ def get_view_representation(view):
     # Transpose list of products into product of lists.
     primitive_distributions = tranpose_product_list(product_distributions)
     assert all(len(p) == len(weights) for p in primitive_distributions)
-    return weights, primitive_distributions
+    # Obtain data incorporated in this view.
+    observes_crp = get_view_observes_crp_vs(view)
+    observes_data = get_view_observes_data_vs(view)
+    # Build the shebang.
+    return VSView(
+        weights=weights,
+        distributions=primitive_distributions,
+        observes_crp=observes_crp,
+        observes_data=observes_data
+    )
 
 def get_variables_to_view_assignment(crosscat):
     distribution_outputs = sorted(get_distribution_outputs(crosscat))
@@ -440,11 +491,9 @@ def get_variables_to_view_assignment(crosscat):
         for (output, v_idx) in zip(distribution_outputs, view_idx)]
 
 def convert_trace_to_venturescript_ast(crosscat):
-    weights_list, distributions_view = zip(*[
-        get_view_representation(view) for view in crosscat.cgpms
-    ])
+    vs_views = [get_view_representation(view) for view in crosscat.cgpms]
     variable_to_view = get_variables_to_view_assignment(crosscat)
-    return distributions_view, variable_to_view, weights_list
+    return vs_views
 
 def compile_distributions_view(stream, distributions_list, view_idx, terminal):
     for i, distributions in enumerate(distributions_list):
@@ -461,7 +510,9 @@ def compile_distributions_view(stream, distributions_list, view_idx, terminal):
             stream.write('\n')
         core_compile_indent(stream, 8)
         stream.write(']]]')
-        if i < len(distributions_list) - 1 or not terminal:
+        if not terminal:
+            stream.write(',')
+        elif i < len(distributions_list) - 1:
             stream.write(',')
         stream.write('\n')
 
@@ -469,8 +520,8 @@ def compile_distributions_list(stream, distributions_view):
     stream.write('assume variable_to_distributions = dict(\n')
     for i, distributions_list in enumerate(distributions_view):
         core_compile_indent(stream, 4)
-        stream.write('\\\\ Mixture models in view %d.\n' % (i,))
-        terminal = (i == len(distributions_list) - 1)
+        stream.write('// Mixture models in view %d.\n' % (i,))
+        terminal = (i == len(distributions_view) - 1)
         compile_distributions_view(stream, distributions_list, i, terminal)
     stream.write(');')
 
@@ -512,19 +563,49 @@ def compile_sample_variable(stream):
     sampler() #cell_value:pair(rowid, variable)
 };''')
 
+def compile_observes_crp_list(stream, observes_crp_list):
+    for view_idx, observes_crp in enumerate(observes_crp_list):
+        for rowid, assignment in observes_crp:
+            stream.write(
+                'observe sample_row_mixture_assignment(rowid: %d, view:%d) = %d;'
+                % (rowid, view_idx, assignment))
+            stream.write('\n')
+
+def compile_observes_data_list(stream, observes_data_list):
+    for observes_data in observes_data_list:
+        for rowid, varname, datum in observes_data:
+            stream.write(
+                'observe sample_variable(rowid:%d, variable:"%s") = %d;'
+                % (rowid, varname, datum))
+            stream.write('\n')
+
 def render_trace_in_venturescript(crosscat, stream=None):
     stream = stream or StringIO()
-    distributions_list, variable_to_view, weights_list = \
-        convert_trace_to_venturescript_ast(crosscat)
+    vs_views = convert_trace_to_venturescript_ast(crosscat)
+    # Compile the distributions.
+    distributions_list = [v.distributions for v in vs_views]
     compile_distributions_list(stream, distributions_list)
     stream.write('\n\n')
+    # Compile the variable to view assignments.
     # compile_variable_to_view_assignment(stream, variable_to_view)
     # stream.write('\n\n')
+    # Compile the mixture weights.
+    weights_list = [v.weights for v in vs_views]
     compile_weights_list(stream, weights_list)
     stream.write('\n\n')
+    # Compile sampler for (rowid, view) to mixture assignments.
     compile_sample_row_mixture_assignment(stream)
     stream.write('\n\n')
+    # Compile sampler for (rowid, variable) to datum.
     compile_sample_variable(stream)
+    stream.write('\n\n')
+    # Compile observes for CRP.
+    observes_crp_list = [v.observes_crp for v in vs_views]
+    compile_observes_crp_list(stream, observes_crp_list)
+    stream.write('\n\n')
+    # Compile observes for data.
+    observes_data_list = [v.observes_data for v in vs_views]
+    compile_observes_data_list(stream, observes_data_list)
     return stream
 
 # Testing.
@@ -563,7 +644,7 @@ if __name__ == '__main__':
     exec(embedded_dsl.getvalue())
 
     crosscat.observe(1, {0:1, 1:-1, 2: 3})
-    crosscat.observe(2, {4:1, 5:8})
+    crosscat.observe(2, {0:2, 1:3, 4:1, 5:8})
 
     # Go from the model -> ast -> code (will be done post inference).
     # print convert_crosscat_to_embedded_dsl_model(crosscat).getvalue()
