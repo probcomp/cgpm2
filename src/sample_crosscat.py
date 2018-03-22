@@ -73,20 +73,20 @@ def generate_random_row_divider(rng):
     output = next(generate_output_ast)
     distribution = ('crp', None)
     hypers = generate_random_hyperparameters(distribution, rng)
-    return (output, distribution, hypers)
+    return [output, distribution, hypers]
 
-
-def generate_random_ast(distributions, rng):
+def generate_random_ast(schema, rng):
     """End-to-end simulator for AST of Core DSL."""
+    distributions = [schemum[1] for schemum in schema]
     partition_alpha = rng.gamma(1,1)
     partition = generate_random_partition(partition_alpha, len(distributions), rng)
     row_dividers = [generate_random_row_divider(rng) for _i in partition]
     primitives = [
-        (output, dist, generate_random_hyperparameters(dist, rng))
+        [output, dist, generate_random_hyperparameters(dist, rng)]
         for output, dist in enumerate(distributions)
     ]
     return [
-        (row_divider, [primitives[b] for b in block])
+        [row_divider, [primitives[b] for b in block]]
         for row_divider, block in zip(row_dividers, partition)
     ]
 
