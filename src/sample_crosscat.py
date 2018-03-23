@@ -3,6 +3,8 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
+from math import isnan
+
 import itertools
 import yaml
 
@@ -11,6 +13,7 @@ from collections import OrderedDict
 from collections import namedtuple
 
 import numpy as np
+import tempfile
 
 from cgpm.utils.general import get_prng
 from cgpm.utils.general import merged
@@ -598,24 +601,31 @@ def compile_get_cell_value(stream):
     sampler() #cell_value:pair(rowid, variable)
 };''')
 
-def compile_observes_crp_list(stream, observes_crp_list):
-    stream.write('// Observe row assignments of each rowid in each view.\n')
-    for view_idx, observes_crp in enumerate(observes_crp_list):
-        for rowid, assignment in observes_crp:
-            stream.write(
-                'observe get_row_mixture_assignment(rowid: %d, view:%d) = %d;'
-                % (rowid, view_idx, assignment))
-            stream.write('\n')
+def compile_observes_crp_list(stream, observes_crp_list, explicit):
+    stream.write('// Observe mixture assignment of each rowid in each view.\n')
+    with tempfile.NamedTemporaryFile(prefix='cgpm2vs-crp', delete=False) as f:
+        for view_idx, observes_crp in enumerate(observes_crp_list):
+            for rowid, assignment in observes_crp:
+                if explicit:
+                    stream.write(
+                        'observe get_row_mixture_assignment(rowid: %d, '
+                            'view:%d) = %d;'
+                        % (rowid, view_idx, assignment))
+                    stream.write('\n')
+                f.write('%d, %d, %d\n' % (rowid, view_idx, assignment))
 
-def compile_observes_data_list(stream, observes_data_list, schema):
-    stream.write('// Observe datum from the training set.\n')
-    for observes_data in observes_data_list:
-        for rowid, varname, datum in observes_data:
-            varname_proper = convert_variable_name(varname, schema)
-            stream.write(
-                'observe get_cell_value(rowid:%d, "%s") = %1.4f;'
-                % (rowid, varname_proper, datum))
-            stream.write('\n')
+def compile_observes_data_list(stream, observes_data_list, schema, explicit):
+    stream.write('// Observe each datum from the training data table.\n')
+    with tempfile.NamedTemporaryFile(prefix='cgpm2vs-datum', delete=False) as f:
+        for observes_data in observes_data_list:
+            for rowid, varname, datum in observes_data:
+                varname_proper = convert_variable_name(varname, schema)
+                if explicit and not isnan(datum):
+                    stream.write(
+                        'observe get_cell_value(rowid:%d, "%s") = %1.4f;'
+                        % (rowid, varname_proper, datum))
+                    stream.write('\n')
+                f.write('%d,"%s",%1.4f\n' % (rowid, varname_proper, datum))
 
 def render_trace_in_venturescript(crosscat, schema, observes=None, stream=None):
     stream = stream or StringIO()
@@ -643,11 +653,11 @@ def render_trace_in_venturescript(crosscat, schema, observes=None, stream=None):
     if observes:
         # Compile observes for CRP.
         observes_crp_list = [v.observes_crp for v in vs_views]
-        compile_observes_crp_list(stream, observes_crp_list)
+        compile_observes_crp_list(stream, observes_crp_list, observes)
         stream.write('\n')
         # Compile observes for data.
         observes_data_list = [v.observes_data for v in vs_views]
-        compile_observes_data_list(stream, observes_data_list, schema)
+        compile_observes_data_list(stream, observes_data_list, schema, observes)
     return stream
 
 # Testing.
