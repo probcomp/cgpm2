@@ -162,7 +162,9 @@ class Chain(CGPM):
 def observe_one(cgpm, rowid, observation, inputs):
     observation_cgpm = get_intersection(cgpm.outputs, observation)
     if observation_cgpm:
-        inputs_cgpm = get_intersection(cgpm.inputs, inputs)
+        inputs_cgpm_parents = get_intersection(cgpm.inputs, observation)
+        inputs_cgpm_exog = get_intersection(cgpm.inputs, inputs)
+        inputs_cgpm = merged(inputs_cgpm_parents, inputs_cgpm_exog)
         cgpm.observe(rowid, observation_cgpm, inputs_cgpm)
 
 def unobserve_one(cgpm, rowid):
