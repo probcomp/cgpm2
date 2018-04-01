@@ -27,7 +27,8 @@ cctype_to_primitive = {
 }
 
 def convert_dim_to_base_cgpm(dim):
-    return cctype_to_primitive[dim.cctype](dim.outputs, [], hypers=dim.hypers)
+    init = cctype_to_primitive[dim.cctype]
+    return init(dim.outputs, [], hypers=dim.hypers, distargs=dim.distargs)
 
 def rebase_cgpm_row_assignments(Zr):
     unique_tables = set(Zr.itervalues())
