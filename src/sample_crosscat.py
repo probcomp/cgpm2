@@ -526,7 +526,7 @@ def convert_trace_to_venturescript_ast(crosscat):
     variable_to_view = get_variables_to_view_assignment(crosscat)
     return vs_views, variable_to_view
 
-def compile_distributions_view(stream, distributions_list, view_idx, terminal,
+def compile_distributions_view(stream, distributions_list, terminal,
         schema):
     for i, distributions in enumerate(distributions_list):
         varnames, cgpms = zip(*distributions)
@@ -534,7 +534,7 @@ def compile_distributions_view(stream, distributions_list, view_idx, terminal,
         assert all(v==varname for v in varnames)
         varname_proper = convert_variable_name(varname, schema)
         core_compile_indent(stream, 4)
-        stream.write('["%s",\t[%d, [\n' % (varname_proper, view_idx))
+        stream.write('["%s",\t[\n' % (varname_proper,))
         for j, cgpm in enumerate(cgpms):
             core_compile_indent(stream, 8)
             stream.write('%s' % (cgpm,))
@@ -542,7 +542,7 @@ def compile_distributions_view(stream, distributions_list, view_idx, terminal,
                 stream.write(',')
             stream.write('\n')
         core_compile_indent(stream, 8)
-        stream.write(']]]')
+        stream.write(']]')
         if not terminal:
             stream.write(',')
         elif i < len(distributions_list) - 1:
@@ -556,7 +556,7 @@ def compile_distributions_list(stream, distributions_view, schema):
         stream.write('// Mixture models in view %d.\n' % (view_idx,))
         terminal = (view_idx == len(distributions_view) - 1)
         compile_distributions_view(stream, distributions_list,
-            view_idx, terminal, schema)
+            terminal, schema)
     stream.write(');')
 
 def compile_weights_list(stream, weights_list):
@@ -593,11 +593,9 @@ def compile_get_row_mixture_assignment(stream):
 def compile_get_cell_value(stream):
     stream.write(
 '''assume get_cell_value = (rowid, variable) ~> {
-    variable_distributions = variable_to_distributions[variable];
-    view = variable_distributions[0];
-    distributions = variable_distributions[1];
+    view = variable_to_view_assignment[variable];
     row_mixture_assignment = get_row_mixture_assignment(rowid, view);
-    sampler = distributions[row_mixture_assignment];
+    sampler = variable_to_distributions[variable][row_mixture_assignment];
     sampler() #cell_value:pair(rowid, variable)
 };''')
 
@@ -635,11 +633,8 @@ def render_trace_in_venturescript(crosscat, schema, observes=None, stream=None):
     compile_distributions_list(stream, distributions_list, schema)
     stream.write('\n\n')
     # Compile the variable to view assignments.
-    #
-    # XXX These identities have been moved into the distributions section.
     compile_variable_to_view_assignment(stream, variable_to_view, schema)
     stream.write('\n\n')
-    #
     # Compile the mixture weights.
     weights_list = [v.weights for v in vs_views]
     compile_weights_list(stream, weights_list)
