@@ -433,7 +433,9 @@ def get_primitive_distribution(cgpm):
             % (hypers['a'], hypers['b'])
     elif cgpm.name() == 'categorical':
         hypers = cgpm.get_hypers()
-        maker = 'make_symm_dirichlet_categorical(%1.4f)' % (hypers['alpha'])
+        distargs = cgpm.get_distargs()
+        maker = 'make_symm_dirichlet_categorical(%d, %1.4f)' % \
+            (distargs['k'], hypers['alpha'])
     else:
         assert False, 'Unknown distribution: %s' % (cgpm.name(),)
     return (varname, maker)
