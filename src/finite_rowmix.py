@@ -110,16 +110,16 @@ class FiniteRowMixture(CGPM):
             # The terms are then:
             # P(xT,xC|z=k)                  lp_x_joint
             # P(xC|z=k)                     lp_x_constraints
-            z = targets[self.indexer]
+            z = constraints[self.indexer]
             targets_joint = merged(targets, constraints)
-            lp_x_joint = self.logpdf_one(
+            lp_x_joint = self._logpdf_one(
                 rowid=rowid,
                 targets=targets_joint,
                 constraints=None,
                 inputs=inputs,
                 component=z
             )
-            lp_x_constraints = self.logpdf_one(
+            lp_x_constraints = self._logpdf_one(
                 rowid=rowid,
                 targets=constraints,
                 constraints=None,
