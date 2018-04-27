@@ -52,16 +52,12 @@ class FiniteRowMixture(CGPM):
                 raise ValueError('Constrained cluster has 0 density: %s' % (z,))
             return self._simulate_one(rowid, targets, constraints, inputs, N, z)
         z_support = self.cgpm_row_divide.support()
-        z_weights = [
-            self.logpdf(rowid, {self.indexer: z}, constraints, inputs)
-            for z in z_support
-        ]
+        z_weights = [self.logpdf(rowid, {self.indexer: z}, constraints, inputs)
+            for z in z_support]
         zs = log_pflip(z_weights, array=z_support, size=(N or 1), rng=self.rng)
         counts = {z:n for z,n in enumerate(np.bincount(zs)) if n}
-        samples = [
-            self._simulate_one(rowid, targets, constraints, inputs, n, z)
-            for z, n in counts.iteritems()
-        ]
+        samples = [self._simulate_one(rowid, targets, constraints, inputs, n, z)
+            for z, n in counts.iteritems()]
         return samples[0][0] if N is None else lchain(*samples)
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
