@@ -42,7 +42,6 @@ class FiniteRowMixture(CGPM):
             cgpm_components, self.indexer, self.rng)
 
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
-        # from IPython.core.debugger import Tracer; Tracer()()
         if rowid in self.rowid_to_component:
             assert not constraints or self.indexer not in constraints
             z = self.rowid_to_component[rowid]
