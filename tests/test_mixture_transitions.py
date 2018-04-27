@@ -22,10 +22,11 @@ from cgpm2.walks import get_cgpms_by_output_index
 
 def test_transition_crp_mixture():
     prng = get_prng(2)
-    data0 = prng.normal(loc=0, scale=2, size=20)
-    data1 = prng.normal(loc=30, scale=1, size=20)
-    data2 = prng.normal(loc=-30, scale=1, size=20)
-    data = np.concatenate((data0, data1, data2))
+    data = np.concatenate((
+        prng.normal(loc=0, scale=2, size=20),
+        prng.normal(loc=30, scale=1, size=20),
+        prng.normal(loc=-30, scale=1, size=20),
+    ))
     infinite_mixture = FlexibleRowMixture(
         cgpm_row_divide=CRP([1], [], rng=prng),
         cgpm_components_base=Normal([0], [], rng=prng),
