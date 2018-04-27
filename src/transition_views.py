@@ -121,7 +121,7 @@ def transition_cgpm_view_assigments(crosscat, outputs, aux=1):
     return crosscat
 
 def set_cgpm_view_assignment(crosscat, output0, output1):
-    """Move cgpm of output0 to view of output1(use None for a singleton)."""
+    """Move cgpm of output0 to view of output1 (use None for a singleton)."""
     if output1 is not None:
         return set_cgpm_view_assignment_existing(crosscat, output0, output1)
     else:
