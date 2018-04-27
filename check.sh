@@ -15,7 +15,7 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         # By default, when running all tests, skip tests that have
         # been marked for continuous integration by using __ci_ in
         # their names.  (git grep __ci_ to find these.)
-        ./pythenv.sh "$PYTHON" -m pytest --pyargs cgpm -k "not __ci_"
+        ./pythenv.sh "$PYTHON" -m pytest --pyargs cgpm2 -k "not __ci_"
     else
         # If args are specified, run all tests, including continuous
         # integration tests, for the selected components.
