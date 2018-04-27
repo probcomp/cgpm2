@@ -48,6 +48,8 @@ class FiniteRowMixture(CGPM):
             return self._simulate_one(rowid, targets, constraints, inputs, N, z)
         elif constraints and self.indexer in constraints:
             z = constraints[self.indexer]
+            if z not in self.cgpm_row_divide.support():
+                raise ValueError('Constrained cluster has 0 density: %s' % (z,))
             return self._simulate_one(rowid, targets, constraints, inputs, N, z)
         z_support = self.cgpm_row_divide.support()
         z_weights = [
@@ -110,6 +112,8 @@ class FiniteRowMixture(CGPM):
             # P(xT,xC|z=k)                  lp_x_joint
             # P(xC|z=k)                     lp_x_constraints
             z = constraints[self.indexer]
+            if z not in self.cgpm_row_divide.support():
+                raise ValueError('Constrained cluster has 0 density: %s' % (z,))
             targets_joint = merged(targets, constraints)
             lp_x_joint = self._logpdf_one(
                 rowid=rowid,
