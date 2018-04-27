@@ -1,0 +1,20 @@
+FROM            ubuntu:16.04
+MAINTAINER      MIT Probabilistic Computing Project
+
+RUN             apt-get update -qq \
+                && apt-get upgrade -qq \
+                && apt-get install -qq -y \
+                    git \
+                    python-matplotlib \
+                    python-numpy \
+                    python-pandas \
+                    python-pytest \
+                    python-scipy \
+                    python-sklearn \
+                    python-statsmodels
+
+ADD             . /cgpm2
+WORKDIR         /cgpm2
+RUN             ./check.sh tests
+RUN             python setup.py sdist
+RUN             python setup.py bdist
