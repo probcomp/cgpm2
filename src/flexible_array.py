@@ -36,7 +36,7 @@ class FlexibleArray(CGPM):
         return cgpm.logpdf(rowid, targets, constraints, inputs)
 
     def logpdf_score(self):
-        return sum(cgpm.logpdf_score for cgpm in self.cgpms.itervalues())
+        return sum(cgpm.logpdf_score() for cgpm in self.cgpms.itervalues())
 
     def observe(self, rowid, observation, inputs=None):
         i_select = inputs.pop(self.indexer)
