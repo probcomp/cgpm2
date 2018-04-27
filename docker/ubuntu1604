@@ -15,6 +15,10 @@ RUN             apt-get update -qq \
 
 ADD             . /cgpm2
 WORKDIR         /cgpm2
-RUN             ./check.sh tests
+RUN \
+                ./docker/deps/cgpm/pythenv.sh \
+                ./docker/deps/crosscat/pythenv.sh \
+                ./check.sh tests
+
 RUN             python setup.py sdist
 RUN             python setup.py bdist
