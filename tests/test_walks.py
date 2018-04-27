@@ -3,6 +3,8 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
+import pytest
+
 from cgpm.utils.general import get_prng
 
 from cgpm2.crp import CRP
@@ -26,7 +28,7 @@ def test_product_mixture_walk():
         cgpm_row_divide=cgpm_row_divide,
         cgpm_components_base=component_base,
         rng=prng)
-
+    # Only the base CGPMs in the flexible mixture.
     cgpm_poisson = get_cgpms_by_output_index(infinite_mixture, 0)
     cgpm_normal = get_cgpms_by_output_index(infinite_mixture, 1)
     cgpm_crp = get_cgpms_by_output_index(infinite_mixture, 2)
@@ -34,7 +36,7 @@ def test_product_mixture_walk():
     assert cgpm_normal == [component_base.cgpms[1]]
     assert cgpm_crp == [cgpm_row_divide]
     infinite_mixture.observe(0, {0:1})
-
+    # New CGPMs in the flexible CGPM after observing.
     cgpm_poisson = get_cgpms_by_output_index(infinite_mixture, 0)
     cgpm_normal = get_cgpms_by_output_index(infinite_mixture, 1)
     assert len(cgpm_poisson) == len(cgpm_normal) == 2
@@ -46,3 +48,6 @@ def test_product_mixture_walk():
     assert len(cgpm_crp) == 1
     assert cgpm_crp[0].N == 1
     assert cgpm_crp[0].data[0] == 0
+    # Misc. errors, no such output.
+    with pytest.raises(Exception):
+        get_cgpms_by_output_index(infinite_mixture, -1)
