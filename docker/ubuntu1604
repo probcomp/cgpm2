@@ -11,14 +11,18 @@ RUN             apt-get update -qq \
                     python-pytest \
                     python-scipy \
                     python-sklearn \
-                    python-statsmodels
+                    python-statsmodels \
+                    python-virtualenv
+
+RUN             virtualenv --system-site-packages /venv
+RUN             . /venv/bin/activate && pip install numba
 
 ADD             . /cgpm2
 WORKDIR         /cgpm2
-RUN \
-                ./docker/deps/cgpm/pythenv.sh \
-                ./docker/deps/crosscat/pythenv.sh \
-                ./check.sh tests
+RUN             . /venv/bin/activate \
+                    && ./docker/deps/cgpm/pythenv.sh \
+                        ./docker/deps/crosscat/pythenv.sh \
+                        ./check.sh tests
 
 RUN             python setup.py sdist
 RUN             python setup.py bdist
