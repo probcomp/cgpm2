@@ -70,6 +70,10 @@ def validate_crosscat(crosscat):
         for component in array.cgpm_base.cgpms:
             assert isinstance(component, DistributionCGPM)
 
+def get_rowids_transition(view, rowids):
+    rowids_view = get_rowids(view)
+    return rowids_view if not rowids \
+        else [r for r in rowids_view if r in rowids]
 
 class GibbsCrossCat(object):
 
@@ -132,10 +136,11 @@ class GibbsCrossCat(object):
         pass
 
     def transition_row_assignments(self, outputs=None, rowids=None):
+        rowids = set(rowids) if rowids is not None else set()
         views = get_row_mixture_cgpms(self.crosscat, outputs)
         for view in views:
-            rowids = rowids or get_rowids(view)
-            for rowid in self.rng.permutation(rowids):
+            rowids_view = get_rowids_transition(view, rowids)
+            for rowid in self.rng.permutation(rowids_view):
                 transition_rows(view, rowid, self.rng)
 
     def transition_view_assignments(self, outputs=None):
