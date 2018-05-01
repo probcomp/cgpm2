@@ -22,7 +22,7 @@ def test_convert_cgpm_to_cgpm2():
     view_cgpm1 = state.views[0]
     view_cgpm1.transition(N=5)
     # Convert
-    product = convert_cgpm_state_to_cgpm2(state)
+    product = convert_cgpm_state_to_cgpm2(state, prng)
     view_cgpm2 = product.cgpms[0]
     # Verify row assignments.
     assignments0 = view_cgpm1.Zr()

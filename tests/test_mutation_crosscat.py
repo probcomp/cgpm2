@@ -35,9 +35,9 @@ def get_crosscat_synthesizer(prng):
         cgpm_components_base=Product([
             Normal([0], [], rng=prng),
             Normal([1], [], rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
-    crosscat = Product(cgpms=[view])
+    crosscat = Product(cgpms=[view], rng=prng)
     data = make_bivariate_two_clusters(prng)
     for rowid, row in enumerate(data):
         crosscat.observe(rowid, {0: row[0], 1: row[1]})
@@ -62,7 +62,7 @@ def test_mutation_hypers_crp():
         assert crp.get_hypers()['alpha'] == v
 
 def test_mutation_set_view_assignment():
-    prng = get_prng()
+    prng = get_prng(2)
     synthesizer = get_crosscat_synthesizer(prng)
     # Move column 0 zero to singleton view.
     synthesizer.set_view_assignment(0, None)
@@ -72,7 +72,7 @@ def test_mutation_set_view_assignment():
     assert len(synthesizer.crosscat.cgpms) == 1
 
 def test_mutation_set_rowid_component():
-    prng = get_prng()
+    prng = get_prng(2)
     synthesizer = get_crosscat_synthesizer(prng)
     crp = synthesizer.crosscat.cgpms[0].cgpm_row_divide
     # Move row 0 to singleton component.

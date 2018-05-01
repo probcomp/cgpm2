@@ -22,7 +22,7 @@ from cgpm2.product import Product
 
 
 def test_simple_product():
-    prng = get_prng()
+    prng = get_prng(2)
     column0 = Normal([0], [], rng=prng)
     column1 = Normal([1], [], rng=prng)
     column2 = Categorical([2], [], distargs={'k':4}, rng=prng)

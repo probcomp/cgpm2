@@ -55,7 +55,9 @@ def get_cgpm_view_proposal_singleton_one(crosscat, cgpm_base_list, dataset_list)
     # What if we sample non-unique outputs?
     crp_output = crosscat.rng.randint(2**32-1)
     cgpm_row_divide = CRP([crp_output], [], rng=crosscat.rng)
-    view = FlexibleRowMixture(cgpm_row_divide, Product(cgpm_base_list),
+    view = FlexibleRowMixture(
+        cgpm_row_divide=cgpm_row_divide,
+        cgpm_components_base=Product(cgpm_base_list, rng=crosscat.rng),
         rng=crosscat.rng)
     for dataset in dataset_list:
         for rowid, observation in dataset:

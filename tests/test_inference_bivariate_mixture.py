@@ -131,8 +131,10 @@ def test_finite_mixture_two_component__ci_():
     finite_mixture = FiniteRowMixture(
         cgpm_row_divide=Categorical([2], [], distargs={'k':2}, rng=prng),
         cgpm_components=[
-            Product([Normal([0], [], rng=prng), Normal([1], [], rng=prng)]),
-            Product([Normal([0], [], rng=prng), Normal([1], [], rng=prng)]),
+            Product([Normal([0], [], rng=prng), Normal([1], [], rng=prng)],
+                rng=prng),
+            Product([Normal([0], [], rng=prng), Normal([1], [], rng=prng)],
+                rng=prng),
         ],
         rng=prng)
     run_mixture_test(finite_mixture, prng)
@@ -144,7 +146,7 @@ def test_flexible_mixture_two_component__ci_():
         cgpm_components_base=Product([
             Normal([0], [], rng=prng),
             Normal([1], [], rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
     run_mixture_test(flexible_mixture, prng)
 
@@ -156,9 +158,9 @@ def get_crosscat(prng):
         cgpm_components_base=Product([
             Normal([0], [], rng=prng),
             Normal([1], [], rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
-    return Product(cgpms=[view])
+    return Product(cgpms=[view], rng=prng)
 
 def run_crosscat_test(crosscat, func_inference, prng):
     data = make_bivariate_two_clusters(prng)
@@ -222,16 +224,16 @@ def test_crosscat_two_component_nominal__ci_():
             cgpm_row_divide=CRP([-1], [], rng=prng),
             cgpm_components_base=Product([
                 Normal([0], [], rng=prng),
-            ]),
+            ], rng=prng),
             rng=prng),
         FlexibleRowMixture(
             cgpm_row_divide=CRP([-2], [], rng=prng),
             cgpm_components_base=Product([
                 Normal([1], [], rng=prng),
                 Categorical([50], [], distargs={'k':4}, rng=prng),
-            ]),
+            ], rng=prng),
             rng=prng),
-    ])
+    ], rng=prng,)
     # Fetch data and add a nominal variable.
     data_xy = make_bivariate_two_clusters(prng)
     data_z = np.zeros(len(data_xy))

@@ -25,28 +25,28 @@ from cgpm2.transition_views import get_cgpm_view_proposals_singleton
 from cgpm2.transition_views import get_dataset
 
 def get_crosscat(prng):
-    infinite_mixture0 = FlexibleRowMixture(
+    view0 = FlexibleRowMixture(
         cgpm_row_divide=CRP([-1], [], rng=prng),
         cgpm_components_base=Product([
             Normal([0], [], rng=prng),
             Normal([1], [], rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
-    infinite_mixture1 = FlexibleRowMixture(
+    view1 = FlexibleRowMixture(
         cgpm_row_divide=CRP([-2], [], rng=prng),
         cgpm_components_base=Product([
             Poisson([2], [], rng=prng),
             Normal([3], [], rng=prng),
             Normal([4], [], rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
-    infinite_mixture2 = FlexibleRowMixture(
+    view2 = FlexibleRowMixture(
         cgpm_row_divide=CRP([-3], [], rng=prng),
         cgpm_components_base=Product([
             Categorical([5], [], distargs={'k':4}, rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
-    return Product([infinite_mixture0, infinite_mixture1, infinite_mixture2])
+    return Product([view0, view1, view2], rng=prng)
 
 def populate_crosscat(crosscat, prng):
     X, Zv, Zrv = gen_data_table(
@@ -71,7 +71,7 @@ def test_crosscat_add_remove():
         cgpm_row_divide=CRP([-4], [], rng=prng),
         cgpm_components_base=Product([
             Categorical([6], [], distargs={'k':4}, rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
     crosscat = add_cgpm(crosscat, infinite_mixture4)
     assert crosscat.outputs == [-1, 0, 1, -2, 2, 3, 4, -3, 5, -4, 6]

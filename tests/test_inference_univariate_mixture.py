@@ -147,9 +147,9 @@ def test_crosscat_three_component__ci_():
     prng = get_prng(10)
     view = FlexibleRowMixture(
         cgpm_row_divide=CRP([1], [], rng=prng),
-        cgpm_components_base=Product(cgpms=[Normal([0], [], rng=prng)]),
+        cgpm_components_base=Product(cgpms=[Normal([0], [], rng=prng)], rng=prng),
         rng=prng)
-    crosscat = Product(cgpms=[view])
+    crosscat = Product(cgpms=[view], rng=prng)
     def func_inference(crosscat):
         synthesizer = GibbsCrossCat(crosscat, prng)
         for _step in xrange(500):
@@ -160,12 +160,12 @@ def test_crosscat_three_component__ci_():
     run_crosscat_test(crosscat, func_inference, prng)
 
 def test_crosscat_three_component_cpp__ci_():
-    prng = get_prng(10)
+    prng = get_prng(12)
     view = FlexibleRowMixture(
         cgpm_row_divide=CRP([1], [], rng=prng),
-        cgpm_components_base=Product(cgpms=[Normal([0], [], rng=prng)]),
+        cgpm_components_base=Product(cgpms=[Normal([0], [], rng=prng)], rng=prng),
         rng=prng)
-    crosscat = Product(cgpms=[view])
+    crosscat = Product(cgpms=[view], rng=prng)
     def func_inference(crosscat):
         synthesizer = GibbsCrossCat(crosscat, prng)
         synthesizer.transition_structure_cpp(N=1000)

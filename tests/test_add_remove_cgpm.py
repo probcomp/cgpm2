@@ -23,7 +23,7 @@ def test_add_remove():
         cgpm_components_base=Product([
             Normal([0], [], rng=prng),
             Normal([1], [], rng=prng),
-        ]),
+        ], rng=prng),
         rng=prng)
     for rowid, row in enumerate([[0,.9] ,[.5, 1], [-.5, 1.2]]):
         mixture0.observe(rowid, {0:row[0], 1:row[1]})
