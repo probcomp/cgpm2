@@ -121,7 +121,7 @@ def _get_crosscat_T(crosscat, M_c):
             assert unicode(int(val)) in lookup
             return float(lookup[unicode(int(val))])
         else:
-            return val
+            return float(val)
     ordering = outputs
     rows = range(len(T[ordering[0]]))
     return [
