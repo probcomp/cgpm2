@@ -12,7 +12,8 @@ RUN             apt-get update -qq \
                     python-scipy \
                     python-sklearn \
                     python-statsmodels \
-                    python-virtualenv
+                    python-virtualenv \
+                    python-yaml
 
 RUN             virtualenv --system-site-packages /venv
 RUN             . /venv/bin/activate && pip install numba
