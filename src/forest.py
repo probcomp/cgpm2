@@ -46,7 +46,7 @@ class RandomForest(DistributionCGPM):
         self.inputs = list(inputs)
         self.params = params
         self.k = int(distargs['k'])
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Derived attributes.
         assert len(distargs['levels']) == len(inputs)
         self.distargs = distargs

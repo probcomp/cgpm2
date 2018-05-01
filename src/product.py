@@ -22,7 +22,7 @@ class Product(Chain):
         validate_cgpms_product(cgpms)
         # From constructor.
         self.cgpms = flatten_cgpms(cgpms, Product)
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Derived attributes.
         self.outputs = lchain(*[cgpm.outputs for cgpm in self.cgpms])
         self.inputs = lchain(*[cgpm.inputs for cgpm in self.cgpms])

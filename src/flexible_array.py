@@ -16,7 +16,7 @@ class FlexibleArray(CGPM):
     def __init__(self, cgpm_base, indexer, rng=None):
         # From constructor.
         self.cgpm_base = cgpm_base
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Derived attributes.
         self.outputs = self.cgpm_base.outputs
         self.inputs = [indexer] + self.cgpm_base.inputs

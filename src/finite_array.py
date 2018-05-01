@@ -14,7 +14,7 @@ class FiniteArray(CGPM):
     def __init__(self, cgpms, indexer, rng=None):
         # From constructor.
         self.cgpms = cgpms
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Derived attributes.
         self.outputs = self.cgpms[0].outputs
         self.inputs = [indexer] + self.cgpms[0].inputs

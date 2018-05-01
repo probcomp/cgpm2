@@ -30,7 +30,7 @@ class Poisson(DistributionCGPM):
         self.outputs = list(outputs)
         self.inputs = list(inputs)
         self.params = params
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Internal attributes.
         self.data = OrderedDict()
         self.N = 0

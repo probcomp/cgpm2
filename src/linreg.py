@@ -65,7 +65,7 @@ class LinearRegression(DistributionCGPM):
         self.outputs = list(outputs)
         self.inputs = list(inputs)
         self.params = params
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Derived attributes.
         assert len(distargs['levels']) == len(inputs)
         self.distargs = distargs

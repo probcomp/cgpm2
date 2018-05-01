@@ -18,7 +18,7 @@ class FlexibleRowMixture(FiniteRowMixture):
         assert len(cgpm_row_divide.outputs) == 1
         # From constructor.
         self.cgpm_row_divide = cgpm_row_divide
-        self.rng = rng or get_prng()
+        self.rng = rng or get_prng(1)
         # Derived attributes.
         self.outputs_z = cgpm_row_divide.outputs
         self.inputs_z = cgpm_row_divide.inputs
