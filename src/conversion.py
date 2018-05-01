@@ -26,10 +26,10 @@ cctype_to_primitive = {
     'poisson'     : Poisson,
 }
 
-def convert_dim_to_base_cgpm(dim, prng):
+def convert_dim_to_base_cgpm(dim, rng):
     init = cctype_to_primitive[dim.cctype]
     return init(dim.outputs, [], hypers=dim.hypers, distargs=dim.distargs,
-        rng=prng)
+        rng=rng)
 
 def rebase_cgpm_row_assignments(Zr):
     unique_tables = set(Zr.itervalues())
@@ -37,12 +37,12 @@ def rebase_cgpm_row_assignments(Zr):
     tables_new = [(rowid, tables_map[t]) for rowid, t in Zr.iteritems()]
     return sorted(tables_new, key=lambda a: a[1])
 
-def convert_view_to_rowmixture(view, prng):
-    cgpms = [convert_dim_to_base_cgpm(d, prng) for d in view.dims.itervalues()]
-    component_base_cgpms = Product(cgpms, rng=prng)
-    cgpm_row_divide = convert_dim_to_base_cgpm(view.crp, prng)
+def convert_view_to_rowmixture(view, rng):
+    cgpms = [convert_dim_to_base_cgpm(d, rng) for d in view.dims.itervalues()]
+    component_base_cgpms = Product(cgpms, rng=rng)
+    cgpm_row_divide = convert_dim_to_base_cgpm(view.crp, rng)
     cgpm_row_mixture = FlexibleRowMixture(cgpm_row_divide, component_base_cgpms,
-        rng=prng)
+        rng=rng)
     for rowid, assignment in rebase_cgpm_row_assignments(view.Zr()):
         obs_z = {cgpm_row_divide.outputs[0]: assignment}
         obs_x = {c: view.X[c][rowid] for c in component_base_cgpms.outputs}
@@ -50,9 +50,9 @@ def convert_view_to_rowmixture(view, prng):
         cgpm_row_mixture.observe(rowid, observation)
     return cgpm_row_mixture
 
-def convert_cgpm_state_to_cgpm2(state, prng):
-    views = [convert_view_to_rowmixture(v, prng) for v in state.views.values()]
-    return Product(views, rng=prng)
+def convert_cgpm_state_to_cgpm2(state, rng):
+    views = [convert_view_to_rowmixture(v, rng) for v in state.views.values()]
+    return Product(views, rng=rng)
 
 # AST Conversion
 
