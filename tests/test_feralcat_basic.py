@@ -59,3 +59,9 @@ def test_feralcat_crash():
         synthesizer.transition(N=1)
         return synthesizer.crosscat
     crosscat.transition(custom_program, multiprocess=1)
+
+    metadata = crosscat.to_metadata()
+    crosscat = CrossCat.from_metadata(metadata, prng)
+
+    crosscat.get_same_assignment_column_pairwise()
+    crosscat.get_same_assignment_row_pairwise(1)

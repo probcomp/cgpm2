@@ -3,6 +3,11 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
+import itertools
+
+import numpy as np
+
+from cgpm.utils.general import build_cgpm
 from cgpm.utils.general import get_prng
 from cgpm.utils.parallel_map import parallel_map
 
@@ -16,8 +21,10 @@ from cgpm2.poisson import Poisson
 from cgpm2.flexible_rowmix import FlexibleRowMixture
 from cgpm2.product import Product
 
-from cgpm2.transition_crosscat import GibbsCrossCat
+from cgpm2.transition_rows import get_rowids
 
+from cgpm2.transition_crosscat import GibbsCrossCat
+from cgpm2.transition_crosscat import get_distribution_outputs
 
 # Initializer for CrossCat state.
 
@@ -103,6 +110,36 @@ def make_default_inference_program(N=None, S=None, outputs=None):
         synthesizer.transition_structure_cpp(N=N, S=S, outputs=outputs)
         return synthesizer.crosscat
     return func
+
+def same_assignment_column((crosscat, output0, output1)):
+    view_idx0 = crosscat.output_to_index[output0]
+    view_idx1 = crosscat.output_to_index[output1]
+    return view_idx0 == view_idx1
+
+def same_assignment_row((crosscat, output, row0, row1)):
+    view_idx = crosscat.output_to_index[output]
+    view = crosscat.cgpms[view_idx]
+    cluster_idx0 = view.cgpm_row_divide.data[row0]
+    cluster_idx1 = view.cgpm_row_divide.data[row1]
+    return cluster_idx0 == cluster_idx1
+
+def same_assignment_column_pairwise((crosscat, outputs)):
+    matrix = np.eye(len(outputs))
+    reindex = {output: i for i, output in enumerate(outputs)}
+    for i,j in itertools.combinations(outputs, 2):
+        d = same_assignment_column((crosscat, i, j))
+        matrix[reindex[i], reindex[j]] = matrix[reindex[j], reindex[i]] = d
+    return matrix
+
+def same_assignment_row_pairwise((crosscat, output)):
+    view_idx = crosscat.output_to_index[output]
+    rowids = get_rowids(crosscat.cgpms[view_idx])
+    matrix = np.eye(len(rowids))
+    reindex = {rowid: i for i, rowid in enumerate(rowids)}
+    for i, j in itertools.combinations(rowids, 2):
+        s = same_assignment_row((crosscat, output, i, j))
+        matrix[reindex[i], reindex[j]] = matrix[reindex[j], reindex[i]] = s
+    return matrix
 
 class CrossCat(object):
 
@@ -194,9 +231,62 @@ class CrossCat(object):
         return self._simulate(_evaluate_bulk, rowids, targets, constraints,
             inputs, Ns, multiprocess)
 
-    # Inference.
+    # Arbitrary stochastic/deterministic mutation operators.
 
     def transition(self, program, multiprocess=1):
         mapper = parallel_map if multiprocess else map
-        args = [([program], self.cgpms[chain]) for chain in self.chains_list]
+        args = [([program], self.cgpms[chain],)
+            for chain in self.chains_list]
         self.cgpms = mapper(_alter, args)
+
+    # Structural properties.
+
+    def get_same_assignment_column(self, output0, output1, multiprocess=0):
+        mapper = parallel_map if multiprocess else map
+        args = [(self.cgpms[chain], output0, output1)
+            for chain in self.chains_list]
+        return mapper(same_assignment_column, args)
+
+    def get_same_assignment_column_pairwise(self, multiprocess=1):
+        mapper = parallel_map if multiprocess else map
+        args = [(self.cgpms[chain], self.outputs)
+            for chain in self.chains_list]
+        result = mapper(same_assignment_column_pairwise, args)
+        return np.asarray(result)
+
+    def get_same_assignment_row(self, output, rowid0, rowid1, multiprocess=0):
+        mapper = parallel_map if multiprocess else map
+        args = [(self.cgpms[chain], output, rowid0, rowid1)
+            for chain in self.chains_list]
+        return mapper(same_assignment_row, args)
+
+    def get_same_assignment_row_pairwise(self, output, multiprocess=0):
+        mapper = parallel_map if multiprocess else map
+        args = [(self.cgpms[chain], output)
+            for chain in self.chains_list]
+        result = mapper(same_assignment_row_pairwise, args)
+        return np.asarray(result)
+
+    # Serialization.
+
+    def to_metadata(self):
+        metadata = dict()
+        metadata['chains'] = self.chains
+        metadata['outputs'] = self.outputs
+        metadata['inputs'] = self.inputs
+        metadata['distributions'] = self.distributions
+        metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]
+        metadata['factory'] = ('cgpm2.feralcat', 'CrossCat')
+        return metadata
+
+    @classmethod
+    def from_metadata(cls, metadata, rng):
+        model = cls(metadata['outputs'],
+            metadata['inputs'],
+            metadata['distributions'],
+            chains=metadata['chains'],
+            rng=rng,
+        )
+        cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
+        model.cgpms = cgpms
+        return model

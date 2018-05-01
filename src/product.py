@@ -26,6 +26,8 @@ class Product(Chain):
         # Derived attributes.
         self.outputs = lchain(*[cgpm.outputs for cgpm in self.cgpms])
         self.inputs = lchain(*[cgpm.inputs for cgpm in self.cgpms])
+        self.output_to_index = {output:i for i, cgpm in enumerate(self.cgpms)
+            for output in cgpm.outputs}
 
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         samples = [simulate_one(cgpm, rowid, targets, constraints, inputs, N)
