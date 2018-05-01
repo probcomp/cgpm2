@@ -154,8 +154,8 @@ class CrossCat(object):
         self.distributions = distributions
         self.rng = rng or get_prng(1)
         # Derived attributes.
-        seeds = self.rng.randint(0, 2**32-1, size=chains)
         self.chains_list = range(chains)
+        seeds = self.rng.randint(0, 2**32-1, size=chains)
         self.cgpms = map(make_random_crosscat,
             [(outputs, distributions, seed) for seed in seeds])
 
