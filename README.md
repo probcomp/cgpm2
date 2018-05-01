@@ -18,5 +18,3 @@ following repositories:
 Before making any push to master, please run the following command in the shell:
 
     $ ./check.sh
-
-
