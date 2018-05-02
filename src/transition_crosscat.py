@@ -175,10 +175,11 @@ class GibbsCrossCat(object):
         self.transition_hypers_distributions()
         self.transition_hypers_row_divide()
 
-    def transition_structure_cpp(self, N=None, S=None, outputs=None):
+    def transition_structure_cpp(self, N=None, S=None, outputs=None,
+            progress=None):
         seed = self.rng.randint(2**32-1)
         self.crosscat = transition_cpp(self.crosscat, N=N, S=S, cols=outputs,
-            seed=seed)
+            seed=seed, progress=progress)
         self.transition_hypers_distributions()
         self.transition_hypers_row_divide()
 

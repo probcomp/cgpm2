@@ -56,7 +56,7 @@ def test_feralcat_crash():
     def custom_program(crosscat):
         from cgpm2.transition_crosscat import GibbsCrossCat
         synthesizer = GibbsCrossCat(crosscat, crosscat.rng)
-        synthesizer.transition(N=1)
+        synthesizer.transition(N=1, progress=False)
         return synthesizer.crosscat
     crosscat.transition(custom_program, multiprocess=1)
 
