@@ -33,6 +33,11 @@ def test_feralcat_crash():
     assert all(len(sample)==15 for sample in samples)
     assert all(len(s)==2 for sample in samples for s in sample)
 
+    samples = crosscat.simulate_bulk([100, 102], [[],[]], Ns=None)
+    assert len(samples) == crosscat.chains
+    assert all(len(sample)==2 for sample in samples)
+    assert all(len(s)==0 for sample in samples for s in sample)
+
     samples = crosscat.simulate_bulk(None, [[1,2], [1]], Ns=[10,3])
     assert len(samples) == crosscat.chains
     assert all(len(sample)==2 for sample in samples)
@@ -49,6 +54,10 @@ def test_feralcat_crash():
     assert len(logps) == crosscat.chains
     assert all(len(logp)==len(samples[0][0]) for logp in logps)
     assert all(isinstance(l, float) for logp in logps for l in logp)
+
+    logps = crosscat.logpdf_bulk(None, [])
+    assert len(logps) == crosscat.chains
+    assert all(len(logp) == 0 for logp in logps)
 
     program = make_default_inference_program(N=10)
     crosscat.transition(program, multiprocess=1)
