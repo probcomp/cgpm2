@@ -160,10 +160,11 @@ class CrossCat(object):
         self.cgpms = map(make_random_crosscat,
             [(outputs, distributions, seed) for seed in seeds])
 
-    # Observe.
+    def get_mapper(self, multiprocess):
+        return parallel_map if multiprocess else map
 
     def _observe(self, func, rowid, observation, inputs, multiprocess):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [('observe', self.cgpms[chain],
                 (rowid, observation, inputs))
                 for chain in self.chains_list]
@@ -175,10 +176,8 @@ class CrossCat(object):
     def observe_bulk(self, rowids, observations, inputs=None, multiprocess=1):
         self._observe(_modify_bulk, rowids, observations, inputs, multiprocess)
 
-    # Unobserve.
-
     def _unobserve(self, func, rowid, multiprocess):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [('unobserve', self.cgpms[chain],
                 (rowid,))
                 for chain in self.chains_list]
@@ -190,11 +189,9 @@ class CrossCat(object):
     def unobserve_bulk(self, rowids, multiprocess=0):
         self._unobserve(_modify_bulk, rowids, multiprocess)
 
-    # logpdf
-
     def _logpdf(self, func, rowids, targets, constraints, inputs,
             multiprocess):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [('logpdf', self.cgpms[chain],
                 (rowids, targets, constraints, inputs))
             for chain in self.chains_list]
@@ -211,11 +208,9 @@ class CrossCat(object):
         return self._logpdf(_evaluate_bulk, rowids, targets, constraints,
             inputs, multiprocess)
 
-    # simulate
-
     def _simulate(self, func, rowids, targets, constraints, inputs, N,
             multiprocess):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [('simulate', self.cgpms[chain],
                 (rowids, targets, constraints, inputs, N))
             for chain in self.chains_list]
@@ -232,37 +227,33 @@ class CrossCat(object):
         return self._simulate(_evaluate_bulk, rowids, targets, constraints,
             inputs, Ns, multiprocess)
 
-    # Arbitrary stochastic/deterministic mutation operators.
-
     def transition(self, program, multiprocess=1):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [([program], self.cgpms[chain],)
             for chain in self.chains_list]
         self.cgpms = mapper(_alter, args)
 
-    # Structural properties.
-
     def get_same_assignment_column(self, output0, output1, multiprocess=0):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [(self.cgpms[chain], output0, output1)
             for chain in self.chains_list]
         return mapper(same_assignment_column, args)
 
     def get_same_assignment_column_pairwise(self, multiprocess=1):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [(self.cgpms[chain], self.outputs)
             for chain in self.chains_list]
         result = mapper(same_assignment_column_pairwise, args)
         return np.asarray(result)
 
     def get_same_assignment_row(self, output, rowid0, rowid1, multiprocess=0):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [(self.cgpms[chain], output, rowid0, rowid1)
             for chain in self.chains_list]
         return mapper(same_assignment_row, args)
 
     def get_same_assignment_row_pairwise(self, output, multiprocess=0):
-        mapper = parallel_map if multiprocess else map
+        mapper = self.get_mapper(multiprocess)
         args = [(self.cgpms[chain], output)
             for chain in self.chains_list]
         result = mapper(same_assignment_row_pairwise, args)
