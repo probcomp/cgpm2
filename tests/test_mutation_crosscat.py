@@ -41,7 +41,7 @@ def get_crosscat_synthesizer(prng):
     data = make_bivariate_two_clusters(prng)
     for rowid, row in enumerate(data):
         crosscat.observe(rowid, {0: row[0], 1: row[1]})
-    return GibbsCrossCat(crosscat, prng)
+    return GibbsCrossCat(crosscat)
 
 
 def test_mutation_hypers_component():

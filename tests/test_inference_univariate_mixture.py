@@ -151,7 +151,7 @@ def test_crosscat_three_component__ci_():
         rng=prng)
     crosscat = Product(cgpms=[view], rng=prng)
     def func_inference(crosscat):
-        synthesizer = GibbsCrossCat(crosscat, prng)
+        synthesizer = GibbsCrossCat(crosscat)
         for _step in xrange(500):
             synthesizer.transition_row_assignments()
             synthesizer.transition_hypers_distributions()
@@ -167,7 +167,7 @@ def test_crosscat_three_component_cpp__ci_():
         rng=prng)
     crosscat = Product(cgpms=[view], rng=prng)
     def func_inference(crosscat):
-        synthesizer = GibbsCrossCat(crosscat, prng)
+        synthesizer = GibbsCrossCat(crosscat)
         synthesizer.transition_structure_cpp(N=1000)
         synthesizer.transition_hypers_distributions()
         synthesizer.transition_hypers_row_divide()

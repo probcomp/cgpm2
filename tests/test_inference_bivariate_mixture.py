@@ -180,7 +180,7 @@ def test_crosscat_two_component_no_view__ci_():
     prng = get_prng(10)
     crosscat = get_crosscat(prng)
     def func_inference(crosscat):
-        synthesizer = GibbsCrossCat(crosscat, prng)
+        synthesizer = GibbsCrossCat(crosscat)
         for _step in xrange(500):
             synthesizer.transition_row_assignments()
             synthesizer.transition_hypers_distributions()
@@ -192,7 +192,7 @@ def test_crosscat_two_component_view__ci_():
     prng = get_prng(10)
     crosscat = get_crosscat(prng)
     def func_inference(crosscat):
-        synthesizer = GibbsCrossCat(crosscat, prng)
+        synthesizer = GibbsCrossCat(crosscat)
         for _step in xrange(540):
             synthesizer.transition_row_assignments()
             synthesizer.transition_hypers_row_divide()
@@ -205,9 +205,9 @@ def test_crosscat_two_component_cpp__ci_():
     prng = get_prng(10)
     crosscat = get_crosscat(prng)
     def func_inference(crosscat):
-        synthesizer = GibbsCrossCat(crosscat, prng)
+        synthesizer = GibbsCrossCat(crosscat)
         for _step in xrange(540):
-            synthesizer = GibbsCrossCat(crosscat, prng)
+            synthesizer = GibbsCrossCat(crosscat)
             synthesizer.transition_structure_cpp(N=1000)
             synthesizer.transition_hypers_distributions()
             synthesizer.transition_hypers_row_divide()
@@ -246,7 +246,7 @@ def test_crosscat_two_component_nominal__ci_():
     for rowid, row in enumerate(data):
         crosscat.observe(rowid, {0: row[0], 1: row[1], 50:row[2]})
     # Run inference.
-    synthesizer = GibbsCrossCat(crosscat, prng)
+    synthesizer = GibbsCrossCat(crosscat)
     synthesizer.transition(N=50, progress=False)
     synthesizer.transition(N=100,
             kernels=['hypers_distributions','hypers_row_divide'],

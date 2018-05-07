@@ -77,12 +77,11 @@ def get_rowids_transition(view, rowids):
 
 class GibbsCrossCat(object):
 
-    def __init__(self, crosscat, rng):
+    def __init__(self, crosscat):
         # Confirm CrossCat is well-formed.
         validate_crosscat(crosscat)
         # From constructor.
         self.crosscat = crosscat
-        self.rng = rng
         # Derived attributes.
         self.grids = dict()
         self.transition_hyper_grids_row_divide()
@@ -113,12 +112,12 @@ class GibbsCrossCat(object):
     def transition_hypers_distributions(self, outputs=None):
         distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
         for output, cgpms in distribution_cgpms.iteritems():
-            transition_hypers(cgpms, self.grids[output], self.rng)
+            transition_hypers(cgpms, self.grids[output], self.crosscat.rng)
 
     def transition_hypers_row_divide(self, outputs=None):
         crp_cgpms = get_row_divide_cgpms(self.crosscat, outputs)
         for _output, cgpms in crp_cgpms.iteritems():
-            transition_hypers(cgpms, self.grids['row_divide'], self.rng)
+            transition_hypers(cgpms, self.grids['row_divide'], self.crosscat.rng)
 
     def transition_hypers_column_divide(self):
         pass
@@ -140,8 +139,8 @@ class GibbsCrossCat(object):
         views = get_row_mixture_cgpms(self.crosscat, outputs)
         for view in views:
             rowids_view = get_rowids_transition(view, rowids)
-            for rowid in self.rng.permutation(rowids_view):
-                transition_rows(view, rowid, self.rng)
+            for rowid in self.crosscat.rng.permutation(rowids_view):
+                transition_rows(view, rowid, self.crosscat.rng)
 
     def transition_view_assignments(self, outputs=None):
         outputs = outputs or get_distribution_outputs(self.crosscat)
@@ -152,7 +151,7 @@ class GibbsCrossCat(object):
     # Stochastic mutation (cpp synthesizer).
 
     def transition_row_assignments_cpp(self, N=None, S=None, rowids=None):
-        seed = self.rng.randint(2**32-1)
+        seed = self.crosscat.rng.randint(2**32-1)
         kernels = [
             'row_partition_hyperparameters',
             'column_hyperparameters',
@@ -165,7 +164,7 @@ class GibbsCrossCat(object):
         self.transition_hypers_row_divide()
 
     def transition_view_assignments_cpp(self, N=None, S=None, outputs=None):
-        seed = self.rng.randint(2**32-1)
+        seed = self.crosscat.rng.randint(2**32-1)
         kernels = [
             'column_partition_assignments',
             'column_partition_hyperparameter',
@@ -177,7 +176,7 @@ class GibbsCrossCat(object):
 
     def transition_structure_cpp(self, N=None, S=None, outputs=None,
             progress=None):
-        seed = self.rng.randint(2**32-1)
+        seed = self.crosscat.rng.randint(2**32-1)
         self.crosscat = transition_cpp(self.crosscat, N=N, S=S, cols=outputs,
             seed=seed, progress=progress)
         self.transition_hypers_distributions()

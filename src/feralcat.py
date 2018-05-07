@@ -106,7 +106,7 @@ def make_args_list(*args):
 
 def make_default_inference_program(N=None, S=None, outputs=None, progress=None):
     def func(crosscat):
-        synthesizer = GibbsCrossCat(crosscat, crosscat.rng)
+        synthesizer = GibbsCrossCat(crosscat)
         synthesizer.transition_structure_cpp(N=N, S=S, outputs=outputs,
             progress=progress)
         return synthesizer.crosscat
