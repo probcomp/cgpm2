@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from cgpm.utils.general import get_prng
 
 from cgpm2.feralcat import CrossCat
@@ -24,10 +26,17 @@ def test_feralcat_crash():
     prng = get_prng(2)
     crosscat = CrossCat(outputs=[1,2], inputs=[],
         distributions=[('normal', None), ('normal', None)], chains=10, rng=prng)
-    observation = {1:1, 2:0}
-    crosscat.observe(1, observation)
-    crosscat.observe_bulk([2,3], [observation, observation], multiprocess=0)
-    crosscat.observe(4, {1:0})
+    crosscat.observe(1, {1:-1, 2:-1})
+    crosscat.observe_bulk([2,3], [{1:-2, 2:-2}, {1:-3, 2:-3}], multiprocess=0)
+    crosscat.observe(4, {1:-4})
+
+    program = make_default_inference_program(N=10)
+    with pytest.raises(AssertionError):
+        # Misaligned rowids (for crosscat states with two views).
+        crosscat.transition(program, multiprocess=0)
+
+    crosscat.observe(4, {2:-4})
+    crosscat.transition(program, multiprocess=1)
 
     samples = crosscat.simulate(None, [1,2], N=15)
     assert len(samples) == crosscat.chains
@@ -59,9 +68,6 @@ def test_feralcat_crash():
     logps = crosscat.logpdf_bulk(None, [])
     assert len(logps) == crosscat.chains
     assert all(len(logp) == 0 for logp in logps)
-
-    program = make_default_inference_program(N=10)
-    crosscat.transition(program, multiprocess=0)
 
     def custom_program(crosscat):
         from cgpm2.transition_crosscat import GibbsCrossCat
