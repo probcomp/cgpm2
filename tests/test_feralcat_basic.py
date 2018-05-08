@@ -26,7 +26,7 @@ def test_feralcat_crash():
         distributions=[('normal', None), ('normal', None)], chains=10, rng=prng)
     observation = {1:1, 2:0}
     crosscat.observe(1, observation)
-    crosscat.observe_bulk([2,3], [observation, observation], multiprocess=True)
+    crosscat.observe_bulk([2,3], [observation, observation], multiprocess=0)
     crosscat.observe(4, {1:0})
 
     samples = crosscat.simulate(None, [1,2], N=15)
@@ -61,7 +61,7 @@ def test_feralcat_crash():
     assert all(len(logp) == 0 for logp in logps)
 
     program = make_default_inference_program(N=10)
-    crosscat.transition(program, multiprocess=1)
+    crosscat.transition(program, multiprocess=0)
 
     def custom_program(crosscat):
         from cgpm2.transition_crosscat import GibbsCrossCat
