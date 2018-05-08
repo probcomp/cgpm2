@@ -6,6 +6,8 @@
 import itertools
 import sys
 
+from collections import OrderedDict
+
 import numpy as np
 
 from crosscat.LocalEngine import LocalEngine
@@ -35,9 +37,13 @@ def get_crosscat_dataset_one(crosscat, output):
     values = [value[output] for _rowid, value in dataset_sorted]
     return values
 
-def get_crosscat_dataset(crosscat, outputs):
-    datasets = {c: get_crosscat_dataset_one(crosscat, c) for c in outputs}
-    return datasets
+def get_crosscat_dataset(crosscat):
+    outputs = get_distribution_outputs(crosscat)
+    datasets = [
+        {rowid: obs[output] for rowid, obs in get_dataset(crosscat, output)}
+        for output in outputs
+    ]
+    return OrderedDict(zip(outputs, datasets))
 
 def get_crosscat_cgpm_name_distargs_hypers_one(crosscat, output):
     cgpm_base = get_cgpm_base(crosscat, output)
@@ -49,51 +55,41 @@ def get_crosscat_cgpm_name_distargs_hypers(crosscat, outputs):
         for output in outputs
     ])
 
-def get_rowid_mapping(crosscat):
-    def get_rowid_mapping_one(view):
-        crp_cgpm = view.cgpm_row_divide
-        sorted_rowids = sorted(crp_cgpm.data.iterkeys())
-        return {i: rowid for i, rowid in enumerate(sorted_rowids)}
-    mappings = [get_rowid_mapping_one(view) for view in crosscat.cgpms]
-    assert all(m == mappings[0] for m in mappings)
-    return mappings[0]
+# CrossCat M_c.
 
-def _get_crosscat_M_c(crosscat):
-    outputs = get_distribution_outputs(crosscat)
-    T = get_crosscat_dataset(crosscat, outputs)
-    cctypes, distargs, _hyperparams = \
-        get_crosscat_cgpm_name_distargs_hypers(crosscat, outputs)
-
-    assert len(T) == len(outputs) == len(cctypes) == len(distargs)
-    assert all(c in ['normal', 'categorical'] for c in cctypes)
-    ncols = len(outputs)
-
-    def create_metadata_numerical():
+def create_metadata(data, cctype, distargs):
+    if cctype == 'normal':
         return {
-            unicode('modeltype'): unicode('normal_inverse_gamma'),
-            unicode('value_to_code'): {},
-            unicode('code_to_value'): {},
+            unicode('modeltype') : unicode('normal_inverse_gamma'),
+            unicode('value_to_code') : {},
+            unicode('code_to_value') : {},
         }
-    def create_metadata_categorical(col, k):
-        categories = [v for v in sorted(set(T[col])) if not np.isnan(v)]
-        assert all(0 <= c < k for c in categories)
+    elif cctype == 'categorical':
+        categories = [v for v in sorted(set(data)) if not np.isnan(v)]
+        assert all(0 <= c < distargs['k'] for c in categories)
         codes = [unicode('%d') % (c,) for c in categories]
         ncodes = range(len(codes))
         return {
-            unicode('modeltype'):
-                unicode('symmetric_dirichlet_discrete'),
-            unicode('value_to_code'):
-                dict(zip(map(unicode, ncodes), codes)),
-            unicode('code_to_value'):
-                dict(zip(codes, ncodes)),
+            unicode('modeltype') : unicode('symmetric_dirichlet_discrete'),
+            unicode('value_to_code') : dict(zip(map(unicode, ncodes), codes)),
+            unicode('code_to_value') : dict(zip(codes, ncodes)),
         }
+    else:
+        assert False
+
+def _get_crosscat_M_c(crosscat, observations):
+    outputs = get_distribution_outputs(crosscat)
+    cctypes, distargs, _hyperparams = \
+        get_crosscat_cgpm_name_distargs_hypers(crosscat, outputs)
+
+    assert len(observations) == len(outputs) == len(cctypes) == len(distargs)
+    assert all(c in ['normal', 'categorical'] for c in cctypes)
+    ncols = len(outputs)
 
     column_names = [unicode('c%d') % (i,) for i in outputs]
     # Convert all numerical datatypes to normal for lovecat.
     column_metadata = [
-        create_metadata_numerical() \
-            if cctype != 'categorical' else \
-            create_metadata_categorical(output, distarg['k'])
+        create_metadata(observations[output].values(), cctype, distarg)
         for output, cctype, distarg in zip(outputs, cctypes, distargs)
     ]
 
@@ -106,29 +102,39 @@ def _get_crosscat_M_c(crosscat):
             column_metadata,
     }
 
-def _get_crosscat_T(crosscat, M_c):
-    """Create dataset T from crosscat."""
-    outputs = get_distribution_outputs(crosscat)
-    T = get_crosscat_dataset(crosscat, outputs)
-    def crosscat_value_to_code(val, col):
-        if np.isnan(val):
-            return val
+# CrossCat T.
+
+def observations_to_rowids_mapping(observations):
+    rowids_list = [set(d.iterkeys()) for d in observations.itervalues()]
+    assert all(rowids_list[0]==r for r in rowids_list[1:]), 'Misaligned rowids'
+    rowids_sorted = sorted(rowids_list[0])
+    return OrderedDict(enumerate(rowids_sorted))
+
+def crosscat_value_to_code(M_c, val, col):
+    if np.isnan(val):
+        return val
+    lookup = M_c['column_metadata'][col]['code_to_value']
+    if lookup:
         # For hysterical raisins, code_to_value and value_to_code are
         # backwards, so to convert from a raw value to a crosscat value we
         # need to do code->value.
-        lookup = M_c['column_metadata'][col]['code_to_value']
-        if lookup:
-            assert unicode(int(val)) in lookup
-            return float(lookup[unicode(int(val))])
-        else:
-            return float(val)
-    ordering = outputs
-    rows = range(len(T[ordering[0]]))
+        assert unicode(int(val)) in lookup
+        return float(lookup[unicode(int(val))])
+    else:
+        return float(val)
+
+def _get_crosscat_T(crosscat, M_c, observations):
+    """Create dataset T from crosscat."""
+    outputs = get_distribution_outputs(crosscat)
+    rowids_mapping = observations_to_rowids_mapping(observations)
+    rowids = rowids_mapping.itervalues()
     return [
-        [crosscat_value_to_code(T[col][row], i)
-            for (i, col) in enumerate(ordering)]
-        for row in rows
+        [crosscat_value_to_code(M_c, observations[col][row], i)
+            for (i, col) in enumerate(outputs)]
+        for row in rowids
     ]
+
+# CrossCat X_D.
 
 def _get_crosscat_X_D(crosscat):
     """Create X_D from crosscat."""
@@ -153,6 +159,8 @@ def _get_crosscat_X_D(crosscat):
     # row_partition_assignments_remapped[i] contains row partition assignments
     # within view i, indexed so that clusters are numbered starting at zero.
     return row_partition_assignments_remapped
+
+# CrossCat X_L.
 
 def _get_crosscat_X_L(crosscat, M_c, X_D):
     """Create X_L from crosscat."""
@@ -247,10 +255,11 @@ def _get_crosscat_X_L(crosscat, M_c, X_D):
         unicode('col_ensure'): col_ensure
     }
 
-def _get_crosscat_updated(crosscat, M_c, X_L, X_D):
+# Convert (X_L, X_D) -> CGPM.
+
+def _get_crosscat_updated(crosscat, observations, M_c, X_L, X_D):
     # Fetch crosscat data structures.
     outputs = get_distribution_outputs(crosscat)
-    T = get_crosscat_dataset(crosscat, outputs)
     cctypes, _distargs, _hyperparams = \
         get_crosscat_cgpm_name_distargs_hypers(crosscat, outputs)
 
@@ -266,7 +275,7 @@ def _get_crosscat_updated(crosscat, M_c, X_L, X_D):
             assert False, 'Unknown component distribution'
 
     # Check X_D.
-    assert all(len(partition) == len(T[outputs[0]]) for partition in X_D)
+    assert all(len(X_D[0]) == len(partition) for partition in X_D)
     assert len(X_D) == len(X_L['view_state'])
 
     # Checking X_L.
@@ -274,7 +283,7 @@ def _get_crosscat_updated(crosscat, M_c, X_L, X_D):
 
     # Get mapping from zero-based indexes.
     outputs_mapping = {i: output for i, output in enumerate(outputs)}
-    rowids_mapping = get_rowid_mapping(crosscat)
+    rowids_mapping = observations_to_rowids_mapping(observations)
 
     # Set the view partition
     view_assignments = X_L['column_partition']['assignments']
@@ -311,7 +320,7 @@ def transition_cpp(crosscat, N=None, S=None, kernels=None, rowids=None,
         cols=None, seed=None, progress=None):
     """Runs full Gibbs sweeps of all kernels on the cgpm.state.State object.
 
-    Permittable kernels:
+    Permissible kernels:
        'column_partition_hyperparameter'
        'column_partition_assignments'
        'column_hyperparameters'
@@ -348,34 +357,35 @@ def transition_cpp(crosscat, N=None, S=None, kernels=None, rowids=None,
         outputs_mapping_inverse = {c:i for i,c in enumerate(outputs)}
         cols = [outputs_mapping_inverse[c] for c in cols]
 
+    observations = get_crosscat_dataset(crosscat)
+    if not observations:
+        return crosscat
+
     if rowids is None:
         rowids = ()
     else:
-        rowids_mapping = get_rowid_mapping(crosscat)
+        rowids_mapping = observations_to_rowids_mapping(observations)
         rowids_mapping_inverse = {r:i for i, r in rowids_mapping.iteritems()}
         rowids = [rowids_mapping_inverse[r] for r in rowids]
 
-    M_c = _get_crosscat_M_c(crosscat)
-    T = _get_crosscat_T(crosscat, M_c)
-    if len(T) == 0:
-        return crosscat
-    else:
-        X_D = _get_crosscat_X_D(crosscat)
-        X_L = _get_crosscat_X_L(crosscat, M_c, X_D)
-        LE = LocalEngine(seed=seed)
-        X_L_new, X_D_new = LE.analyze(
-            M_c=M_c,
-            T=T,
-            X_L=X_L,
-            X_D=X_D,
-            seed=seed,
-            kernel_list=kernels,
-            n_steps=n_steps,
-            max_time=max_time,
-            c=cols,
-            r=rowids,
-            progress=progress,
-        )
-        # XXX This reconstruction is wasteful: can find the diff in the trace
-        # and apply those, but it is some work to get that right.
-        return _get_crosscat_updated(crosscat, M_c, X_L_new, X_D_new)
+    M_c = _get_crosscat_M_c(crosscat, observations)
+    T = _get_crosscat_T(crosscat, M_c, observations)
+    X_D = _get_crosscat_X_D(crosscat)
+    X_L = _get_crosscat_X_L(crosscat, M_c, X_D)
+    LE = LocalEngine(seed=seed)
+    X_L_new, X_D_new = LE.analyze(
+        M_c=M_c,
+        T=T,
+        X_L=X_L,
+        X_D=X_D,
+        seed=seed,
+        kernel_list=kernels,
+        n_steps=n_steps,
+        max_time=max_time,
+        c=cols,
+        r=rowids,
+        progress=progress,
+    )
+    # XXX This reconstruction is wasteful: can find the diff in the trace
+    # and apply those, but it is some work to get that right.
+    return _get_crosscat_updated(crosscat, observations, M_c, X_L_new, X_D_new)
