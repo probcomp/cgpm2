@@ -10,21 +10,21 @@ import pytest
 
 from cgpm.utils.general import get_prng
 
-from cgpm2.feralcat import CrossCat
+from cgpm2.crosscat_ensemble import CrossCat
 from cgpm2.transition_crosscat import GibbsCrossCat
 from cgpm2.transition_crosscat import validate_crosscat_dependencies
 
 
 @pytest.mark.xfail(strict=True,
     reason='Outputs must be zero based for dependence constraints.')
-def test_feralcat_dependencies_zero_based():
+def test_dependencies_zero_based():
     prng = get_prng(2)
     CrossCat(outputs=(1,2), inputs=(), Ci=[(1,2)],
         distributions=[('normal', None)]*2, chains=5, rng=prng)
 
 @pytest.mark.xfail(strict=True,
     reason='CPP backend for view inference with dependence constraints.')
-def test_feralcat_dependencies_no_cpp():
+def test_dependencies_no_cpp():
     prng = get_prng(2)
     crosscat = CrossCat(outputs=(0,1), inputs=[], Ci=[(0,1)],
         distributions=[('normal', None)]*2, chains=5, rng=prng)

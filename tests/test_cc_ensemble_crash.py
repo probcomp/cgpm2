@@ -18,10 +18,10 @@ import pytest
 
 from cgpm.utils.general import get_prng
 
-from cgpm2.feralcat import CrossCat
+from cgpm2.crosscat_ensemble import CrossCat
 
 
-def test_feralcat_crash():
+def test_cc_ensemble_crash():
     prng = get_prng(2)
     crosscat = CrossCat(outputs=[1,2], inputs=[],
         distributions=[('normal', None), ('normal', None)], chains=10, rng=prng)

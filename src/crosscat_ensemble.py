@@ -282,7 +282,7 @@ class CrossCat(object):
         metadata['inputs'] = self.inputs
         metadata['distributions'] = self.distributions
         metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]
-        metadata['factory'] = ('cgpm2.feralcat', 'CrossCat')
+        metadata['factory'] = ('cgpm2.crosscat_ensemble', 'CrossCat')
         return metadata
 
     @classmethod
