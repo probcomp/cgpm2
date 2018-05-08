@@ -18,12 +18,12 @@ import pytest
 
 from cgpm.utils.general import get_prng
 
-from cgpm2.crosscat_ensemble import CrossCat
+from cgpm2.crosscat_ensemble import CrossCatEnsemble
 
 
 def test_cc_ensemble_crash():
     prng = get_prng(2)
-    crosscat = CrossCat(outputs=[1,2], inputs=[],
+    crosscat = CrossCatEnsemble(outputs=[1,2], inputs=[],
         distributions=[('normal', None), ('normal', None)], chains=10, rng=prng)
     crosscat.observe(1, {1:-1, 2:-1})
     crosscat.observe_bulk([2,3], [{1:-2, 2:-2}, {1:-3, 2:-3}], multiprocess=0)
@@ -76,7 +76,7 @@ def test_cc_ensemble_crash():
     crosscat.transition(custom_program, multiprocess=1)
 
     metadata = crosscat.to_metadata()
-    crosscat = CrossCat.from_metadata(metadata, prng)
+    crosscat = CrossCatEnsemble.from_metadata(metadata, prng)
 
     crosscat.get_same_assignment_column_pairwise()
     crosscat.get_same_assignment_row_pairwise(1)

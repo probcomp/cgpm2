@@ -10,7 +10,7 @@ import pytest
 
 from cgpm.utils.general import get_prng
 
-from cgpm2.crosscat_ensemble import CrossCat
+from cgpm2.crosscat_ensemble import CrossCatEnsemble
 from cgpm2.transition_crosscat import GibbsCrossCat
 from cgpm2.transition_crosscat import validate_crosscat_dependencies
 
@@ -19,14 +19,14 @@ from cgpm2.transition_crosscat import validate_crosscat_dependencies
     reason='Outputs must be zero based for dependence constraints.')
 def test_dependencies_zero_based():
     prng = get_prng(2)
-    CrossCat(outputs=(1,2), inputs=(), Ci=[(1,2)],
+    CrossCatEnsemble(outputs=(1,2), inputs=(), Ci=[(1,2)],
         distributions=[('normal', None)]*2, chains=5, rng=prng)
 
 @pytest.mark.xfail(strict=True,
     reason='CPP backend for view inference with dependence constraints.')
 def test_dependencies_no_cpp():
     prng = get_prng(2)
-    crosscat = CrossCat(outputs=(0,1), inputs=[], Ci=[(0,1)],
+    crosscat = CrossCatEnsemble(outputs=(0,1), inputs=[], Ci=[(0,1)],
         distributions=[('normal', None)]*2, chains=5, rng=prng)
     crosscat.observe(0, {0:0, 1:1})
     synthesizer = GibbsCrossCat(crosscat.cgpms[0], Ci=crosscat.Ci)
@@ -47,7 +47,7 @@ def test_custom_independence(Ci):
     prng = get_prng(1)
     D = prng.normal(size=(10,1))
     T = np.repeat(D, 10, axis=1)
-    crosscat = CrossCat(outputs=range(10), inputs=[],
+    crosscat = CrossCatEnsemble(outputs=range(10), inputs=[],
         distributions=[('normal', None)]*10, chains=5, Ci=Ci, rng=prng)
     incorporate_data(crosscat, T)
     for cgpm in crosscat.cgpms:
@@ -63,7 +63,7 @@ def test_simple_dependence_constraint(Ci):
     D = prng.normal(size=(10,1))
     T = np.repeat(D, 10, axis=1)
     Cd = [(2,0), (8,3)]
-    crosscat = CrossCat(outputs=range(10), inputs=[],
+    crosscat = CrossCatEnsemble(outputs=range(10), inputs=[],
         distributions=[('normal', None)]*10, chains=5, Ci=Ci, Cd=Cd, rng=prng)
     incorporate_data(crosscat, T)
     for cgpm in crosscat.cgpms:
@@ -88,7 +88,7 @@ def test_independence_inference_break():
     data = get_independence_inference_data(prng)
     # HACK: Use Cd to initialize CrossCat state to one view.
     Cd = ((0, 1, 2, 3, 4, 5, 6, 7),)
-    crosscat = CrossCat(outputs=range(8), inputs=[],
+    crosscat = CrossCatEnsemble(outputs=range(8), inputs=[],
         distributions=[('normal', None)]*8, chains=1, Cd=Cd, rng=prng)
     crosscat.Cd = ()
     incorporate_data(crosscat, data)
@@ -109,7 +109,7 @@ def test_independence_inference_merge():
     #   {0:0, 1:0, 2:1, 3:1, 4:2, 5:2, 6:3, 7:3}
     Cd = ((0,1), (2,3), (4,5), (6,7))
     Ci = ((0,2), (0,4), (0, 6), (2,4), (2,6), (4,6))
-    crosscat = CrossCat(outputs=range(8), inputs=[],
+    crosscat = CrossCatEnsemble(outputs=range(8), inputs=[],
         distributions=[('normal', None)]*8, chains=1, Cd=Cd, Ci=Ci, rng=prng)
     crosscat.Ci = ()
     incorporate_data(crosscat, data)

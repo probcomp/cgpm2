@@ -142,7 +142,7 @@ def same_assignment_row_pairwise((crosscat, output)):
         matrix[reindex[i], reindex[j]] = matrix[reindex[j], reindex[i]] = s
     return matrix
 
-class CrossCat(object):
+class CrossCatEnsemble(object):
 
     def __init__(self, outputs, inputs, distributions, chains=1,
             Cd=None, Ci=None, rng=None):
@@ -282,7 +282,7 @@ class CrossCat(object):
         metadata['inputs'] = self.inputs
         metadata['distributions'] = self.distributions
         metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]
-        metadata['factory'] = ('cgpm2.crosscat_ensemble', 'CrossCat')
+        metadata['factory'] = ('cgpm2.crosscat_ensemble', 'CrossCatEnsemble')
         return metadata
 
     @classmethod
