@@ -27,6 +27,7 @@ def test_feralcat_crash():
     observation = {1:1, 2:0}
     crosscat.observe(1, observation)
     crosscat.observe_bulk([2,3], [observation, observation], multiprocess=True)
+    crosscat.observe(4, {1:0})
 
     samples = crosscat.simulate(None, [1,2], N=15)
     assert len(samples) == crosscat.chains
