@@ -12,13 +12,14 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
     rm -rf build
     "$PYTHON" setup.py build
     if [ $# -eq 0 ]; then
-        # By default, when running all tests, skip tests that have
-        # been marked for continuous integration by using __ci_ in
-        # their names.  (git grep __ci_ to find these.)
-        ./pythenv.sh "$PYTHON" -m pytest --pyargs cgpm2 -k "not __ci_"
+        # By default run all tests, using the --integration flag.
+        # Any test which uses this flag should end with __ci_() which
+        # activates integration testing code path. If --integration is
+        # not specified then a __ci_() test will either run as a crash test
+        # or not run at all. (Use git grep '__ci_' to find these tests.)
+        ./pythenv.sh "$PYTHON" -m pytest --pyargs cgpm2 --integration
     else
-        # If args are specified, run all tests, including continuous
-        # integration tests, for the selected components.
+        # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"
     fi
 )
