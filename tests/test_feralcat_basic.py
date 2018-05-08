@@ -19,7 +19,6 @@ import pytest
 from cgpm.utils.general import get_prng
 
 from cgpm2.feralcat import CrossCat
-from cgpm2.feralcat import make_default_inference_program
 
 
 def test_feralcat_crash():
@@ -30,7 +29,7 @@ def test_feralcat_crash():
     crosscat.observe_bulk([2,3], [{1:-2, 2:-2}, {1:-3, 2:-3}], multiprocess=0)
     crosscat.observe(4, {1:-4})
 
-    program = make_default_inference_program(N=10)
+    program = crosscat.make_default_inference_program(N=10)
     with pytest.raises(AssertionError):
         # Misaligned rowids (for crosscat states with two views).
         crosscat.transition(program, multiprocess=0)

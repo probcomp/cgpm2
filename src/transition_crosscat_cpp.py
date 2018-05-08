@@ -11,6 +11,7 @@ from collections import OrderedDict
 import numpy as np
 
 from crosscat.LocalEngine import LocalEngine
+from crosscat.utils.general_utils import get_scc_from_tuples
 
 from .progress import report_progress
 
@@ -209,7 +210,7 @@ def create_view_state(view, row_partition):
         }
     }
 
-def _get_crosscat_X_L(crosscat, M_c, X_D):
+def _get_crosscat_X_L(crosscat, M_c, X_D, Cd, Ci):
     """Create X_L from crosscat."""
     outputs = get_distribution_outputs(crosscat)
     cctypes, _distargs, hyperparams = \
@@ -245,6 +246,19 @@ def _get_crosscat_X_L(crosscat, M_c, X_D):
 
     # Generates X_L['col_ensure'].
     col_ensure = dict()
+    outputs_mapping_inverse = {c:i for i,c in enumerate(outputs)}
+    if Cd:
+        col_ensure['dependent'] = {
+            str(outputs_mapping_inverse[column]) :
+                [outputs_mapping_inverse[c] for c in block]
+            for block in Cd for column in block
+        }
+    if Ci:
+        col_ensure['independent'] = {
+            str(outputs_mapping_inverse[column]) :
+                [outputs_mapping_inverse[c] for c in block]
+            for column, block in get_scc_from_tuples(Ci).iteritems()
+        }
 
     return {
         unicode('column_hypers'): column_hypers,
@@ -315,7 +329,7 @@ def _progress(n_steps, max_time, step_idx, elapsed_secs, end=None):
         report_progress(percentage, sys.stdout)
 
 def transition_cpp(crosscat, N=None, S=None, kernels=None, rowids=None,
-        cols=None, seed=None, progress=None):
+        cols=None, Cd=None, Ci=None, seed=None, progress=None):
     """Runs full Gibbs sweeps of all kernels on the cgpm.state.State object.
 
     Permissible kernels:
@@ -369,7 +383,7 @@ def transition_cpp(crosscat, N=None, S=None, kernels=None, rowids=None,
     M_c = _get_crosscat_M_c(crosscat, observations)
     T = _get_crosscat_T(crosscat, M_c, observations)
     X_D = _get_crosscat_X_D(crosscat)
-    X_L = _get_crosscat_X_L(crosscat, M_c, X_D)
+    X_L = _get_crosscat_X_L(crosscat, M_c, X_D, Cd, Ci)
     LE = LocalEngine(seed=seed)
     X_L_new, X_D_new = LE.analyze(
         M_c=M_c,

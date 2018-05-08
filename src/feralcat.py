@@ -9,6 +9,7 @@ import numpy as np
 
 from cgpm.utils.general import build_cgpm
 from cgpm.utils.general import get_prng
+from cgpm.utils.general import simulate_crp_constrained
 from cgpm.utils.parallel_map import parallel_map
 
 from cgpm2.sample_crosscat import generate_random_partition
@@ -24,7 +25,7 @@ from cgpm2.product import Product
 from cgpm2.transition_rows import get_rowids
 
 from cgpm2.transition_crosscat import GibbsCrossCat
-from cgpm2.transition_crosscat import get_distribution_outputs
+from cgpm2.transition_crosscat_cpp import partition_assignments_to_blocks
 
 # Initializer for CrossCat state.
 
@@ -51,10 +52,17 @@ def make_random_view(outputs, distributions, rng):
     )
     return view
 
-def make_random_crosscat((outputs, distributions, seed)):
+def make_random_partition(N, alpha, Cd, Ci, rng):
+    if not Cd and not Ci:
+        return generate_random_partition(alpha, N, rng)
+    assignments = simulate_crp_constrained(N, alpha, Cd, Ci, [], [], rng)
+    return partition_assignments_to_blocks(assignments)
+
+def make_random_crosscat((outputs, distributions, Cd, Ci, seed)):
     rng = get_prng(seed)
     alpha = rng.gamma(2,1)
-    partition = generate_random_partition(alpha, len(outputs), rng)
+    N = len(outputs)
+    partition = make_random_partition(N, alpha, Cd, Ci, rng)
     views = [
         make_random_view(
             outputs=[outputs[i] for i in block],
@@ -104,14 +112,6 @@ def make_args_list(*args):
 
 # CrossCat.
 
-def make_default_inference_program(N=None, S=None, outputs=None, progress=None):
-    def func(crosscat):
-        synthesizer = GibbsCrossCat(crosscat)
-        synthesizer.transition_structure_cpp(N=N, S=S, outputs=outputs,
-            progress=progress)
-        return synthesizer.crosscat
-    return func
-
 def same_assignment_column((crosscat, output0, output1)):
     view_idx0 = crosscat.output_to_index[output0]
     view_idx1 = crosscat.output_to_index[output1]
@@ -144,7 +144,8 @@ def same_assignment_row_pairwise((crosscat, output)):
 
 class CrossCat(object):
 
-    def __init__(self, outputs, inputs, distributions, chains=1, rng=None):
+    def __init__(self, outputs, inputs, distributions, chains=1,
+            Cd=None, Ci=None, rng=None):
         # Assertion.
         assert len(outputs) == len(distributions)
         assert inputs == []
@@ -153,12 +154,14 @@ class CrossCat(object):
         self.inputs = inputs
         self.chains = chains
         self.distributions = distributions
+        self.Cd = tuple(Cd or [])
+        self.Ci = tuple(Ci or [])
         self.rng = rng or get_prng(1)
         # Derived attributes.
         self.chains_list = range(chains)
         seeds = self.rng.randint(0, 2**32-1, size=chains)
         self.cgpms = map(make_random_crosscat,
-            [(outputs, distributions, seed) for seed in seeds])
+            [(outputs, distributions, self.Cd, self.Ci, seed) for seed in seeds])
 
     def get_mapper(self, multiprocess):
         return parallel_map if multiprocess else map
@@ -258,6 +261,17 @@ class CrossCat(object):
             for chain in self.chains_list]
         result = mapper(same_assignment_row_pairwise, args)
         return np.asarray(result)
+
+    # Transition program.
+
+    def make_default_inference_program(self, N=None, S=None, outputs=None,
+            progress=None):
+        def func(crosscat):
+            synthesizer = GibbsCrossCat(crosscat, Cd=self.Cd, Ci=self.Ci)
+            synthesizer.transition_structure_cpp(N=N, S=S, outputs=outputs,
+                progress=progress)
+            return synthesizer.crosscat
+        return func
 
     # Serialization.
 

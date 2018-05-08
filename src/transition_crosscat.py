@@ -5,6 +5,9 @@
 
 import itertools
 
+from cgpm.utils.validation import validate_dependency_constraints
+from cgpm.utils.validation import validate_crp_constrained_partition
+
 from .crp import CRP
 from .distribution import DistributionCGPM
 from .flexible_rowmix import FlexibleRowMixture
@@ -70,6 +73,16 @@ def validate_crosscat(crosscat):
         for component in array.cgpm_base.cgpms:
             assert isinstance(component, DistributionCGPM)
 
+def validate_crosscat_dependencies(crosscat, Cd, Ci):
+    if not (Cd or Ci):
+        return True
+    outputs = sorted(get_distribution_outputs(crosscat))
+    N = len(outputs)
+    assert outputs == range(N)
+    validate_dependency_constraints(N, Cd, Ci)
+    Zv = {c: i for i, cgpm in enumerate(crosscat.cgpms) for c in cgpm.outputs}
+    assert validate_crp_constrained_partition(Zv, Cd, Ci, [], [])
+
 def get_rowids_transition(view, rowids):
     rowids_view = get_rowids(view)
     return rowids_view if not rowids \
@@ -77,11 +90,14 @@ def get_rowids_transition(view, rowids):
 
 class GibbsCrossCat(object):
 
-    def __init__(self, crosscat):
-        # Confirm CrossCat is well-formed.
-        validate_crosscat(crosscat)
+    def __init__(self, crosscat, Cd=None, Ci=None):
         # From constructor.
         self.crosscat = crosscat
+        self.Cd = tuple(Cd or [])
+        self.Ci = tuple(Ci or [])
+        # Confirm CrossCat is well-formed.
+        validate_crosscat(crosscat)
+        validate_crosscat_dependencies(crosscat, self.Cd, self.Ci)
         # Derived attributes.
         self.grids = dict()
         self.transition_hyper_grids_row_divide()
@@ -143,6 +159,7 @@ class GibbsCrossCat(object):
                 transition_rows(view, rowid, self.crosscat.rng)
 
     def transition_view_assignments(self, outputs=None):
+        assert not (self.Cd or self.Ci)
         outputs = outputs or get_distribution_outputs(self.crosscat)
         for output in outputs:
             self.crosscat = \
@@ -159,7 +176,7 @@ class GibbsCrossCat(object):
             'row_partition_assignments',
         ]
         self.crosscat = transition_cpp(self.crosscat, N=N, S=S,
-            kernels=kernels, rowids=rowids, seed=seed)
+            Cd=self.Cd, Ci=self.Ci, kernels=kernels, rowids=rowids, seed=seed)
         self.transition_hypers_distributions()
         self.transition_hypers_row_divide()
 
@@ -170,7 +187,7 @@ class GibbsCrossCat(object):
             'column_partition_hyperparameter',
         ]
         self.crosscat = transition_cpp(self.crosscat, N=N, S=S,
-            kernels=kernels, cols=outputs, seed=seed)
+            Cd=self.Cd, Ci=self.Ci, kernels=kernels, cols=outputs, seed=seed)
         self.transition_hypers_distributions()
         self.transition_hypers_row_divide()
 
@@ -178,7 +195,7 @@ class GibbsCrossCat(object):
             progress=None):
         seed = self.crosscat.rng.randint(2**32-1)
         self.crosscat = transition_cpp(self.crosscat, N=N, S=S, cols=outputs,
-            seed=seed, progress=progress)
+            Cd=self.Cd, Ci=self.Ci, seed=seed, progress=progress)
         self.transition_hypers_distributions()
         self.transition_hypers_row_divide()
 
@@ -198,4 +215,5 @@ class GibbsCrossCat(object):
             set_rowid_component(view, rowid0, rowid1)
 
     def set_view_assignment(self, output0, output1):
+        assert not (self.Cd or self.Ci)
         self.crosscat = set_cgpm_view_assignment(self.crosscat, output0, output1)
