@@ -162,15 +162,8 @@ def _get_crosscat_X_D(crosscat):
 
 # CrossCat X_L.
 
-def _get_crosscat_X_L(crosscat, M_c, X_D):
-    """Create X_L from crosscat."""
-    outputs = get_distribution_outputs(crosscat)
-    cctypes, _distargs, hyperparams = \
-        get_crosscat_cgpm_name_distargs_hypers(crosscat, outputs)
-
-    # -- Generates X_L['column_hypers'] --
-    def column_hypers_numerical(index, hypers):
-        assert cctypes[index] != 'categorical'
+def create_hypers(M_c, index, cctype, hypers):
+    if cctype == 'normal':
         return {
             unicode('fixed'): 0.0,
             unicode('mu'): hypers['m'],
@@ -178,9 +171,7 @@ def _get_crosscat_X_L(crosscat, M_c, X_D):
             unicode('r'): hypers['r'],
             unicode('s'): hypers['s'],
         }
-
-    def column_hypers_categorical(index, hypers):
-        assert cctypes[index] == 'categorical'
+    elif cctype == 'categorical':
         K = len(M_c['column_metadata'][index]['code_to_value'])
         assert K > 0
         return {
@@ -188,12 +179,45 @@ def _get_crosscat_X_L(crosscat, M_c, X_D):
             unicode('dirichlet_alpha'): hypers['alpha'],
             unicode('K'): K
         }
+    else:
+        assert False
 
-    # Retrieve the column_hypers.
+def create_view_state(view, row_partition):
+    # Generate X_L['view_state'][v]['column_component_suffstats']
+    num_blocks = len(set(row_partition))
+    column_component_suffstats = [
+        [{} for _b in xrange(num_blocks)]
+        for _d in view.outputs[1:]
+    ]
+
+    # Generate X_L['view_state'][v]['column_names']
+    column_names = \
+        [unicode('c%d' % (o,)) for o in view.outputs[1:]]
+
+    # Generate X_L['view_state'][v]['row_partition_model']
+    view_alpha = view.cgpm_row_divide.get_hypers()['alpha']
+    counts = list(np.bincount(row_partition))
+    assert 0 not in counts
+    return {
+        unicode('column_component_suffstats'):
+            column_component_suffstats,
+        unicode('column_names'):
+            column_names,
+        unicode('row_partition_model'): {
+            unicode('counts'): counts,
+            unicode('hypers'): {unicode('alpha'): view_alpha}
+        }
+    }
+
+def _get_crosscat_X_L(crosscat, M_c, X_D):
+    """Create X_L from crosscat."""
+    outputs = get_distribution_outputs(crosscat)
+    cctypes, _distargs, hyperparams = \
+        get_crosscat_cgpm_name_distargs_hypers(crosscat, outputs)
+
+    # -- Generates X_L['column_hypers'] --
     column_hypers = [
-        column_hypers_numerical(i, hypers)
-            if cctype != 'categorical'
-            else column_hypers_categorical(i, hypers)
+        create_hypers(M_c, i, cctype, hypers)
         for i, (cctype, hypers) in enumerate(zip(cctypes, hyperparams))
     ]
 
@@ -211,39 +235,13 @@ def _get_crosscat_X_L(crosscat, M_c, X_D):
     }
 
     # -- Generates X_L['view_state'] --
-    def get_view_state(v):
-        view = crosscat.cgpms[v]
-        row_partition = X_D[v]
-        # Generate X_L['view_state'][v]['column_component_suffstats']
-        num_blocks = len(set(row_partition))
-        column_component_suffstats = [
-            [{} for _b in xrange(num_blocks)]
-            for _d in view.outputs[1:]
-        ]
-
-        # Generate X_L['view_state'][v]['column_names']
-        column_names = \
-            [unicode('c%d' % (o,)) for o in view.outputs[1:]]
-
-        # Generate X_L['view_state'][v]['row_partition_model']
-        view_alpha = view.cgpm_row_divide.get_hypers()['alpha']
-        counts = list(np.bincount(row_partition))
-        assert 0 not in counts
-        return {
-            unicode('column_component_suffstats'):
-                column_component_suffstats,
-            unicode('column_names'):
-                column_names,
-            unicode('row_partition_model'): {
-                unicode('counts'): counts,
-                unicode('hypers'): {unicode('alpha'): view_alpha}
-            }
-        }
-
     # view_states[i] is the view for code views_to_code[i], so we need to
     # iterate in the same order of views_unique to agree with both X_D (the row
     # partition in each view), as well as X_L['column_partition']['assignments']
-    view_states = [get_view_state(v) for v, _view in enumerate(crosscat.cgpms)]
+    view_states = [
+        create_view_state(view, row_partition)
+        for view, row_partition in zip(crosscat.cgpms, X_D)
+    ]
 
     # Generates X_L['col_ensure'].
     col_ensure = dict()
