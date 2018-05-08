@@ -195,12 +195,11 @@ def test_crosscat_two_component_cpp__ci_():
     crosscat = get_crosscat(prng)
     def func_inference(crosscat):
         synthesizer = GibbsCrossCat(crosscat)
-        for _step in xrange(540):
-            synthesizer = GibbsCrossCat(crosscat)
-            synthesizer.transition_structure_cpp(N=1000)
-            synthesizer.transition_hypers_distributions()
-            synthesizer.transition_hypers_row_divide()
-            return synthesizer
+        synthesizer = GibbsCrossCat(crosscat)
+        synthesizer.transition_structure_cpp(N=1000)
+        synthesizer.transition_hypers_distributions()
+        synthesizer.transition_hypers_row_divide()
+        return synthesizer
     run_crosscat_test(crosscat, func_inference, prng)
 
 # Test for crosscat with a nominal variable.
