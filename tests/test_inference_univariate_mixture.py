@@ -3,6 +3,7 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
+import pytest
 import numpy as np
 
 from cgpm.utils.general import get_prng
@@ -67,7 +68,7 @@ def check_sampled_data(samples, id_x=0, id_z=1):
 
 # Tests for mixture models.
 
-def run_mixture_test(cgpm_mixture, prng):
+def run_mixture_test(cgpm_mixture, integration, prng):
     data = make_univariate_three_clusters(prng)
     for rowid, value in enumerate(data):
         cgpm_mixture.observe(rowid, {0: value})
@@ -80,7 +81,8 @@ def run_mixture_test(cgpm_mixture, prng):
         0 : transition_hyper_grids(cgpms[0], 30),
         1 : transition_hyper_grids(cgpms[1], 30)
     }
-    for _step in xrange(500):
+    n_steps = 500 if integration else 1
+    for _step in xrange(n_steps):
         rowids = prng.permutation(range(len(data)))
         for rowid in rowids:
             transition_rows(cgpm_mixture, rowid, prng)
@@ -88,10 +90,10 @@ def run_mixture_test(cgpm_mixture, prng):
             transition_hypers(cgpms[output], grids[output], prng)
     # Test clustered data.
     assignments = cgpm_mixture.cgpm_row_divide.data
-    check_clustered_data(assignments)
+    not integration or check_clustered_data(assignments)
     # Test simulated data.
     samples = cgpm_mixture.simulate(None, [0,1], N=150)
-    check_sampled_data(samples)
+    not integration or check_sampled_data(samples)
 
 
 def test_finite_mixture_three_component__ci_():
@@ -105,7 +107,8 @@ def test_finite_mixture_three_component__ci_():
         ],
         rng=prng,
     )
-    run_mixture_test(finite_mixture, prng)
+    integration = pytest.config.getoption('--integration')
+    run_mixture_test(finite_mixture, integration, prng)
 
 def test_flexible_mixture_three_component__ci_():
     prng = get_prng(2)
@@ -114,11 +117,12 @@ def test_flexible_mixture_three_component__ci_():
         cgpm_components_base=Normal([0], [], rng=prng),
         rng=prng
     )
-    run_mixture_test(flexible_mixture, prng)
+    integration = pytest.config.getoption('--integration')
+    run_mixture_test(flexible_mixture, integration, prng)
 
 # Tests for CrossCat.
 
-def run_crosscat_test(crosscat, func_inference, prng):
+def run_crosscat_test(crosscat, func_inference, integration, prng):
     data = make_univariate_three_clusters(prng)
     for rowid, value in enumerate(data):
         crosscat.observe(rowid, {0: value})
@@ -126,14 +130,15 @@ def run_crosscat_test(crosscat, func_inference, prng):
     synthesizer = func_inference(crosscat)
     # Test clustered data.
     assignments = synthesizer.crosscat.cgpms[0].cgpm_row_divide.data
-    check_clustered_data(assignments)
+    not integration or check_clustered_data(assignments)
     # Test simulated data.
     id_z = synthesizer.crosscat.outputs[0]
     samples = synthesizer.crosscat.simulate(None, [0, id_z], N=150)
-    check_sampled_data(samples, id_z=id_z)
+    not integration or check_sampled_data(samples, id_z=id_z)
 
 def test_crosscat_three_component__ci_():
     prng = get_prng(10)
+    integration = pytest.config.getoption('--integration')
     view = FlexibleRowMixture(
         cgpm_row_divide=CRP([1], [], rng=prng),
         cgpm_components_base=Product(cgpms=[Normal([0], [], rng=prng)], rng=prng),
@@ -141,24 +146,27 @@ def test_crosscat_three_component__ci_():
     crosscat = Product(cgpms=[view], rng=prng)
     def func_inference(crosscat):
         synthesizer = GibbsCrossCat(crosscat)
-        for _step in xrange(500):
+        n_step = 500 if integration else 1
+        for _step in xrange(n_step):
             synthesizer.transition_row_assignments()
             synthesizer.transition_hypers_distributions()
             synthesizer.transition_hypers_row_divide()
         return synthesizer
-    run_crosscat_test(crosscat, func_inference, prng)
+    run_crosscat_test(crosscat, func_inference, integration, prng)
 
 def test_crosscat_three_component_cpp__ci_():
     prng = get_prng(12)
+    integration = pytest.config.getoption('--integration')
     view = FlexibleRowMixture(
         cgpm_row_divide=CRP([1], [], rng=prng),
         cgpm_components_base=Product(cgpms=[Normal([0], [], rng=prng)], rng=prng),
         rng=prng)
     crosscat = Product(cgpms=[view], rng=prng)
     def func_inference(crosscat):
+        n_step = 1000 if integration else 1
         synthesizer = GibbsCrossCat(crosscat)
-        synthesizer.transition_structure_cpp(N=1000)
+        synthesizer.transition_structure_cpp(N=n_step)
         synthesizer.transition_hypers_distributions()
         synthesizer.transition_hypers_row_divide()
         return synthesizer
-    run_crosscat_test(crosscat, func_inference, prng)
+    run_crosscat_test(crosscat, func_inference, integration, prng)
