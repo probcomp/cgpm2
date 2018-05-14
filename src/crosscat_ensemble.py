@@ -92,6 +92,13 @@ def _evaluate_bulk((method, crosscat, args)):
     args_list = make_args_list(*args)
     return [getattr(crosscat, method)(*args) for args in args_list]
 
+def _evaluate2((method, crosscat, args)):
+    return method(crosscat, *args)
+
+def _evaluate2_bulk((method, crosscat, args)):
+    args_list = make_args_list(*args)
+    return [method(crosscat, *args) for args in args_list]
+
 def _alter((funcs, crosscat)):
     for func in funcs:
         crosscat = func(crosscat)
@@ -112,33 +119,33 @@ def make_args_list(*args):
 
 # Custom CrossCat query functions.
 
-def same_assignment_column((crosscat, output0, output1)):
+def same_assignment_column(crosscat, output0, output1):
     view_idx0 = crosscat.output_to_index[output0]
     view_idx1 = crosscat.output_to_index[output1]
     return view_idx0 == view_idx1
 
-def same_assignment_row((crosscat, output, row0, row1)):
+def same_assignment_row(crosscat, output, row0, row1):
     view_idx = crosscat.output_to_index[output]
     view = crosscat.cgpms[view_idx]
     cluster_idx0 = view.cgpm_row_divide.data[row0]
     cluster_idx1 = view.cgpm_row_divide.data[row1]
     return cluster_idx0 == cluster_idx1
 
-def same_assignment_column_pairwise((crosscat, outputs)):
+def same_assignment_column_pairwise(crosscat, outputs):
     matrix = np.eye(len(outputs))
     reindex = {output: i for i, output in enumerate(outputs)}
     for i,j in itertools.combinations(outputs, 2):
-        d = same_assignment_column((crosscat, i, j))
+        d = same_assignment_column(crosscat, i, j)
         matrix[reindex[i], reindex[j]] = matrix[reindex[j], reindex[i]] = d
     return matrix
 
-def same_assignment_row_pairwise((crosscat, output)):
+def same_assignment_row_pairwise(crosscat, output):
     view_idx = crosscat.output_to_index[output]
     rowids = get_rowids(crosscat.cgpms[view_idx])
     matrix = np.eye(len(rowids))
     reindex = {rowid: i for i, rowid in enumerate(rowids)}
     for i, j in itertools.combinations(rowids, 2):
-        s = same_assignment_row((crosscat, output, i, j))
+        s = same_assignment_row(crosscat, output, i, j)
         matrix[reindex[i], reindex[j]] = matrix[reindex[j], reindex[i]] = s
     return matrix
 
@@ -261,28 +268,32 @@ class CrossCatEnsemble(object):
 
     def get_same_assignment_column(self, output0, output1, multiprocess=0):
         mapper = self.get_mapper(multiprocess)
-        args = [(self.cgpms[chain], output0, output1)
+        args = [(same_assignment_column, self.cgpms[chain],
+                (output0, output1))
             for chain in self.chains_list]
-        return mapper(same_assignment_column, args)
+        return mapper(_evaluate2, args)
 
     def get_same_assignment_column_pairwise(self, multiprocess=1):
         mapper = self.get_mapper(multiprocess)
-        args = [(self.cgpms[chain], self.outputs)
+        args = [(same_assignment_column_pairwise, self.cgpms[chain],
+                (self.outputs,))
             for chain in self.chains_list]
-        result = mapper(same_assignment_column_pairwise, args)
+        result = mapper(_evaluate2, args)
         return np.asarray(result)
 
     def get_same_assignment_row(self, output, rowid0, rowid1, multiprocess=0):
         mapper = self.get_mapper(multiprocess)
-        args = [(self.cgpms[chain], output, rowid0, rowid1)
+        args = [(same_assignment_row, self.cgpms[chain],
+                (output, rowid0, rowid1))
             for chain in self.chains_list]
-        return mapper(same_assignment_row, args)
+        return mapper(_evaluate2, args)
 
     def get_same_assignment_row_pairwise(self, output, multiprocess=0):
         mapper = self.get_mapper(multiprocess)
-        args = [(self.cgpms[chain], output)
+        args = [(same_assignment_row_pairwise, self.cgpms[chain],
+                (output,))
             for chain in self.chains_list]
-        result = mapper(same_assignment_row_pairwise, args)
+        result = mapper(_evaluate2, args)
         return np.asarray(result)
 
     # Serialization.
