@@ -12,6 +12,8 @@ from cgpm.utils.general import get_prng
 from cgpm.utils.general import simulate_crp_constrained
 from cgpm.utils.parallel_map import parallel_map
 
+from cgpm2.entropy import mutual_information
+
 from cgpm2.sample_crosscat import generate_random_partition
 
 from cgpm2.bernoulli import Bernoulli
@@ -297,6 +299,14 @@ class CrossCatEnsemble(object):
             for chain in self.chains_list]
         result = mapper(_evaluate2, args)
         return np.asarray(result)
+
+    def mutual_information(self, targets0, targets1, constraints=None,
+            marginalize=None, T=None, N=None, multiprocess=1):
+        mapper = self.get_mapper(multiprocess)
+        args = [(mutual_information, self.cgpms[chain],
+                (targets0, targets1, constraints, marginalize, T, N))
+            for chain in self.chains_list]
+        return mapper(_evaluate2, args)
 
     # Serialization.
 
