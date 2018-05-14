@@ -73,7 +73,7 @@ def make_random_crosscat((outputs, distributions, Cd, Ci, seed)):
     crosscat = Product(cgpms=views, rng=rng)
     return crosscat
 
-# Multiprocessing functions.
+# Generic multiprocessing functions.
 
 def _modify((method, crosscat, args)):
     getattr(crosscat, method)(*args)
@@ -110,7 +110,7 @@ def make_args_list(*args):
     args_list = map(listify, args)
     return zip(*args_list)
 
-# CrossCat.
+# Custom CrossCat query functions.
 
 def same_assignment_column((crosscat, output0, output1)):
     view_idx0 = crosscat.output_to_index[output0]
@@ -142,6 +142,8 @@ def same_assignment_row_pairwise((crosscat, output)):
         matrix[reindex[i], reindex[j]] = matrix[reindex[j], reindex[i]] = s
     return matrix
 
+# CrossCatEnsemble engine.
+
 class CrossCatEnsemble(object):
 
     def __init__(self, outputs, inputs, distributions, chains=1,
@@ -166,6 +168,8 @@ class CrossCatEnsemble(object):
     def get_mapper(self, multiprocess):
         return parallel_map if multiprocess else map
 
+    # Observe.
+
     def _observe(self, func, rowid, observation, inputs, multiprocess):
         mapper = self.get_mapper(multiprocess)
         args = [('observe', self.cgpms[chain],
@@ -179,6 +183,8 @@ class CrossCatEnsemble(object):
     def observe_bulk(self, rowids, observations, inputs=None, multiprocess=1):
         self._observe(_modify_bulk, rowids, observations, inputs, multiprocess)
 
+    # Unobserve.
+
     def _unobserve(self, func, rowid, multiprocess):
         mapper = self.get_mapper(multiprocess)
         args = [('unobserve', self.cgpms[chain],
@@ -191,6 +197,8 @@ class CrossCatEnsemble(object):
 
     def unobserve_bulk(self, rowids, multiprocess=0):
         self._unobserve(_modify_bulk, rowids, multiprocess)
+
+    # logpdf.
 
     def _logpdf(self, func, rowids, targets, constraints, inputs,
             multiprocess):
@@ -211,6 +219,8 @@ class CrossCatEnsemble(object):
         return self._logpdf(_evaluate_bulk, rowids, targets, constraints,
             inputs, multiprocess)
 
+    # simulate.
+
     def _simulate(self, func, rowids, targets, constraints, inputs, N,
             multiprocess):
         mapper = self.get_mapper(multiprocess)
@@ -230,11 +240,24 @@ class CrossCatEnsemble(object):
         return self._simulate(_evaluate_bulk, rowids, targets, constraints,
             inputs, Ns, multiprocess)
 
+    # Transition.
+
+    def make_default_inference_program(self, N=None, S=None, outputs=None,
+            progress=None):
+        def func(crosscat):
+            synthesizer = GibbsCrossCat(crosscat, Cd=self.Cd, Ci=self.Ci)
+            synthesizer.transition_structure_cpp(N=N, S=S, outputs=outputs,
+                progress=progress)
+            return synthesizer.crosscat
+        return func
+
     def transition(self, program, multiprocess=1):
         mapper = self.get_mapper(multiprocess)
         args = [([program], self.cgpms[chain],)
             for chain in self.chains_list]
         self.cgpms = mapper(_alter, args)
+
+    # Custom CrossCat query functions.
 
     def get_same_assignment_column(self, output0, output1, multiprocess=0):
         mapper = self.get_mapper(multiprocess)
@@ -261,17 +284,6 @@ class CrossCatEnsemble(object):
             for chain in self.chains_list]
         result = mapper(same_assignment_row_pairwise, args)
         return np.asarray(result)
-
-    # Transition program.
-
-    def make_default_inference_program(self, N=None, S=None, outputs=None,
-            progress=None):
-        def func(crosscat):
-            synthesizer = GibbsCrossCat(crosscat, Cd=self.Cd, Ci=self.Ci)
-            synthesizer.transition_structure_cpp(N=N, S=S, outputs=outputs,
-                progress=progress)
-            return synthesizer.crosscat
-        return func
 
     # Serialization.
 
