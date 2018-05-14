@@ -14,6 +14,7 @@ from cgpm.utils.parallel_map import parallel_map
 
 from cgpm2.sample_crosscat import generate_random_partition
 
+from cgpm2.bernoulli import Bernoulli
 from cgpm2.categorical import Categorical
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
@@ -32,6 +33,7 @@ from cgpm2.transition_crosscat_cpp import partition_assignments_to_blocks
 distribution_to_cgpm = {
     'categorical' : Categorical,
     'crp'         : CRP,
+    'bernoulli'   : Bernoulli,
     'normal'      : Normal,
     'poisson'     : Poisson,
 }
