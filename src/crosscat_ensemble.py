@@ -316,6 +316,8 @@ class CrossCatEnsemble(object):
         metadata['outputs'] = self.outputs
         metadata['inputs'] = self.inputs
         metadata['distributions'] = self.distributions
+        metadata['Cd'] = self.Cd
+        metadata['Ci'] = self.Ci
         metadata['cgpms'] = [cgpm.to_metadata() for cgpm in self.cgpms]
         metadata['factory'] = ('cgpm2.crosscat_ensemble', 'CrossCatEnsemble')
         return metadata
@@ -326,6 +328,8 @@ class CrossCatEnsemble(object):
             metadata['inputs'],
             metadata['distributions'],
             chains=metadata['chains'],
+            Cd=metadata.get('Cd', None),
+            Ci=metadata.get('Ci', None),
             rng=rng,
         )
         cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
