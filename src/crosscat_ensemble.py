@@ -4,6 +4,7 @@
 # Released under Apache 2.0; refer to LICENSE.txt.
 
 import itertools
+import multiprocessing
 
 import numpy as np
 
@@ -176,17 +177,20 @@ class CrossCatEnsemble(object):
         self.cgpms = map(make_random_crosscat,
             [(outputs, distributions, self.Cd, self.Ci, seed) for seed in seeds])
 
-    def get_mapper(self, multiprocess):
-        return parallel_map if multiprocess else map
+    def mapper(self, func, args, multiprocess):
+        if not multiprocess:
+            return map(func, args)
+        else:
+            parllelism = min(len(args), multiprocessing.cpu_count())
+            return parallel_map(func, args, parallelism=parllelism)
 
     # Observe.
 
     def _observe(self, func, rowid, observation, inputs, multiprocess):
-        mapper = self.get_mapper(multiprocess)
         args = [('observe', self.cgpms[chain],
                 (rowid, observation, inputs))
                 for chain in self.chains_list]
-        self.cgpms = mapper(func, args)
+        self.cgpms = self.mapper(func, args, multiprocess)
 
     def observe(self, rowid, observation, inputs=None, multiprocess=0):
         self._observe(_modify, rowid, observation, inputs, multiprocess)
@@ -197,11 +201,10 @@ class CrossCatEnsemble(object):
     # Unobserve.
 
     def _unobserve(self, func, rowid, multiprocess):
-        mapper = self.get_mapper(multiprocess)
         args = [('unobserve', self.cgpms[chain],
                 (rowid,))
                 for chain in self.chains_list]
-        self.cgpms = mapper(func, args)
+        self.cgpms = self.mapper(func, args, multiprocess)
 
     def unobserve(self, rowid, multiprocess=0):
         self._unobserve(_modify, rowid, multiprocess)
@@ -213,11 +216,10 @@ class CrossCatEnsemble(object):
 
     def _logpdf(self, func, rowids, targets, constraints, inputs,
             multiprocess):
-        mapper = self.get_mapper(multiprocess)
         args = [('logpdf', self.cgpms[chain],
                 (rowids, targets, constraints, inputs))
             for chain in self.chains_list]
-        logpdfs = mapper(func, args)
+        logpdfs = self.mapper(func, args, multiprocess)
         return logpdfs
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None,
@@ -234,11 +236,10 @@ class CrossCatEnsemble(object):
 
     def _simulate(self, func, rowids, targets, constraints, inputs, N,
             multiprocess):
-        mapper = self.get_mapper(multiprocess)
         args = [('simulate', self.cgpms[chain],
                 (rowids, targets, constraints, inputs, N))
             for chain in self.chains_list]
-        samples = mapper(func, args)
+        samples = self.mapper(func, args, multiprocess)
         return samples
 
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None,
@@ -263,50 +264,44 @@ class CrossCatEnsemble(object):
         return func
 
     def transition(self, program, multiprocess=1):
-        mapper = self.get_mapper(multiprocess)
         args = [([program], self.cgpms[chain],)
             for chain in self.chains_list]
-        self.cgpms = mapper(_alter, args)
+        self.cgpms = self.mapper(_alter, args, multiprocess)
 
     # Custom CrossCat query functions.
 
     def get_same_assignment_column(self, output0, output1, multiprocess=0):
-        mapper = self.get_mapper(multiprocess)
         args = [(same_assignment_column, self.cgpms[chain],
                 (output0, output1))
             for chain in self.chains_list]
-        return mapper(_evaluate2, args)
+        return self.mapper(_evaluate2, args, multiprocess)
 
     def get_same_assignment_column_pairwise(self, multiprocess=1):
-        mapper = self.get_mapper(multiprocess)
         args = [(same_assignment_column_pairwise, self.cgpms[chain],
                 (self.outputs,))
             for chain in self.chains_list]
-        result = mapper(_evaluate2, args)
+        result = self.mapper(_evaluate2, args, multiprocess)
         return np.asarray(result)
 
     def get_same_assignment_row(self, output, rowid0, rowid1, multiprocess=0):
-        mapper = self.get_mapper(multiprocess)
         args = [(same_assignment_row, self.cgpms[chain],
                 (output, rowid0, rowid1))
             for chain in self.chains_list]
-        return mapper(_evaluate2, args)
+        return self.mapper(_evaluate2, args, multiprocess)
 
     def get_same_assignment_row_pairwise(self, output, multiprocess=0):
-        mapper = self.get_mapper(multiprocess)
         args = [(same_assignment_row_pairwise, self.cgpms[chain],
                 (output,))
             for chain in self.chains_list]
-        result = mapper(_evaluate2, args)
+        result = self.mapper(_evaluate2, args, multiprocess)
         return np.asarray(result)
 
     def mutual_information(self, targets0, targets1, constraints=None,
             marginalize=None, T=None, N=None, multiprocess=1):
-        mapper = self.get_mapper(multiprocess)
         args = [(mutual_information, self.cgpms[chain],
                 (targets0, targets1, constraints, marginalize, T, N))
             for chain in self.chains_list]
-        return mapper(_evaluate2, args)
+        return self.mapper(_evaluate2, args, multiprocess)
 
     # Serialization.
 
