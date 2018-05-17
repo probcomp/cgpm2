@@ -318,7 +318,7 @@ class CrossCatEnsemble(object):
         return metadata
 
     @classmethod
-    def from_metadata(cls, metadata, rng):
+    def from_metadata(cls, metadata, rng, multiprocess=1):
         model = cls(metadata['outputs'],
             metadata['inputs'],
             metadata['distributions'],
@@ -327,6 +327,7 @@ class CrossCatEnsemble(object):
             Ci=metadata.get('Ci', None),
             rng=rng,
         )
-        cgpms = [build_cgpm(blob, rng) for blob in metadata['cgpms']]
+        builder = lambda blob: build_cgpm(blob, rng)
+        cgpms = mapper(builder, metadata['cgpms'], multiprocess)
         model.cgpms = cgpms
         return model
