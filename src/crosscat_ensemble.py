@@ -303,6 +303,10 @@ class CrossCatEnsemble(object):
             for chain in self.chains_list]
         return mapper(_evaluate2, args, multiprocess)
 
+    def evaluate(self, f, f_args, multiprocess=1):
+        args = [(f, self.cgpms[chain], f_args) for chain in self.chains_list]
+        return mapper(_evaluate2, args, multiprocess)
+
     # Serialization.
 
     def to_metadata(self):
