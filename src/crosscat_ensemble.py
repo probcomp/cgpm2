@@ -212,6 +212,15 @@ class CrossCatEnsemble(object):
     def unobserve_bulk(self, rowids, multiprocess=0):
         self._unobserve(_modify_bulk, rowids, multiprocess)
 
+    # logpdf score.
+
+    def logpdf_score(self, multiprocess=1):
+        args = [('logpdf_score', self.cgpms[chain],
+                ())
+            for chain in self.chains_list]
+        scores = mapper(_evaluate, args, multiprocess)
+        return scores
+
     # logpdf.
 
     def _logpdf(self, func, rowids, targets, constraints, inputs,
