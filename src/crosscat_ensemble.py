@@ -261,6 +261,37 @@ class CrossCatEnsemble(object):
         return self._simulate(_evaluate_bulk, rowids, targets, constraints,
             inputs, Ns, multiprocess)
 
+    # Heterogeneous simulate.
+
+    def _process_heterogenous_args(self, args):
+        args_return = args if args is not None else [None] * self.chains
+        assert len(args_return) == self.chains
+        return args_return
+
+    def _simulate_heterogeneous(self, func, rowid, targets, constraints,
+            inputs, N, multiprocess=1):
+        rowid = self._process_heterogenous_args(rowid)
+        targets = self._process_heterogenous_args(targets)
+        constraints = self._process_heterogenous_args(constraints)
+        inputs = self._process_heterogenous_args(inputs)
+        N = self._process_heterogenous_args(N)
+        args = [('simulate', self.cgpms[chain],
+                (rowid[chain], targets[chain], constraints[chain],
+                    inputs[chain], N[chain]))
+            for chain in self.chains_list]
+        samples = mapper(func, args, multiprocess)
+        return samples
+
+    def simulate_heterogeneous(self, rowid, targets, constraints=None,
+            inputs=None, N=None, multiprocess=1):
+        return self._simulate_heterogeneous(_evaluate, rowid, targets,
+            constraints, inputs, N, multiprocess)
+
+    def simulate_heterogeneous_bulk(self, rowid, targets, constraints=None,
+            inputs=None, Ns=None, multiprocess=1):
+        return self._simulate_heterogeneous(_evaluate_bulk, rowid, targets,
+            constraints, inputs, Ns, multiprocess)
+
     # Transition.
 
     def make_default_inference_program(self, N=None, S=None, outputs=None,

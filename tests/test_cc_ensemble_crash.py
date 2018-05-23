@@ -84,3 +84,101 @@ def test_cc_ensemble_crash():
 
     ensemble.get_same_assignment_column_pairwise()
     ensemble.get_same_assignment_row_pairwise(1)
+
+def test_simulate_heterogeneous_dimensions():
+    prng = get_prng(2)
+    ensemble = get_crosscat_ensemble(prng)
+
+    # Test for simulate_heterogeneous.
+    samples = ensemble.simulate_heterogeneous(
+        rowid=None,
+        targets=[[1,2]]*5 + [[1]]*5,
+        constraints=[None]*5 + [{2:0}]*5,
+        N=None
+    )
+    assert len(samples) == ensemble.chains
+    assert all(len(sample)==2 for sample in samples[:5])
+    assert all(len(sample)==1 for sample in samples[5:])
+    assert all(sample.keys()==[1,2] for sample in samples[:5])
+    assert all(sample.keys()==[1] for sample in samples[5:])
+
+    samples = ensemble.simulate_heterogeneous(
+        rowid=None,
+        targets=[[1,2]]*5 + [[1]]*5,
+        constraints=[None]*5 + [{2:0}]*5,
+        N=[15]*3 + [10]*7,
+        multiprocess=0,
+    )
+    assert len(samples) == ensemble.chains
+    assert all(len(sample)==15 for sample in samples[:3])
+    assert all(len(sample)==10 for sample in samples[3:])
+    assert all(len(s)==2 for sample in samples[:5] for s in sample)
+    assert all(len(s)==1 for sample in samples[5:] for s in sample)
+
+    # Test for simulate_heterogeneous_bulk.
+
+    samples = ensemble.simulate_heterogeneous_bulk(
+        rowid=None,
+        targets=[
+            [[1], ],
+            [[2], ],
+            [[1], [1,2,3]],
+            [[2], [1,2,3]],
+            [[2], [1,2,3]],
+            [[2], [1,2,3]],
+            [[2], [1,2,3]],
+            [[1], [2], [1,2,3]],
+            [[1], [2], [1,2,3]],
+            [[1], [2], [1,2,3]],
+        ],
+    )
+    assert len(samples) == ensemble.chains
+    assert all(len(sample)==1 for sample in samples[:2])
+    assert all(len(sample)==2 for sample in samples[2:7])
+    assert all(len(sample)==3 for sample in samples[7:])
+
+    samples = ensemble.simulate_heterogeneous_bulk(
+        rowid=None,
+        targets=[
+            [[1], ],
+            [[2], ],
+            [[1], [1,2,3]],
+            [[2], [1,2,3]],
+            [[2], [1,2,3]],
+            [[2], [1,2,3]],
+            [[2], [1,2,3]],
+            [[1], [2], [1,2,3]],
+            [[1], [2], [1,2,3]],
+            [[1], [2], [1,2,3]],
+        ],
+        Ns=[
+            [1, ],
+            [20, ],
+            [10, 30],
+            [10, 30],
+            [10, 30],
+            [10, 30],
+            [10, 30],
+            [40, 7, 8],
+            [40, 7, 8],
+            [40, 7, 8],
+        ],
+    )
+    assert len(samples) == ensemble.chains
+    # Query for chain 0.
+    assert len(samples[0]) == 1
+    assert len(samples[0][0]) == 1
+    # Query for chain 1.
+    assert len(samples[1]) == 1
+    assert len(samples[1][0]) == 20
+    # Query for chains 2-6.
+    for i in range(2, 7):
+        assert len(samples[i]) == 2
+        assert len(samples[i][0]) == 10
+        assert len(samples[i][1]) == 30
+    # Query for chains 7-9.
+    for i in range(7, 10):
+        assert len(samples[i]) == 3
+        assert len(samples[i][0]) == 40
+        assert len(samples[i][1]) == 7
+        assert len(samples[i][2]) == 8
