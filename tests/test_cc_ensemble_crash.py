@@ -29,10 +29,18 @@ def test_cc_ensemble_crash():
     ensemble.observe(4, {2:-4})
     ensemble.transition(program, multiprocess=1)
 
+    # Test for simulate.
+
+    samples = ensemble.simulate(None, [1,2])
+    assert len(samples) == ensemble.chains
+    assert all(len(sample)==2 for sample in samples)
+
     samples = ensemble.simulate(None, [1,2], N=15)
     assert len(samples) == ensemble.chains
     assert all(len(sample)==15 for sample in samples)
     assert all(len(s)==2 for sample in samples for s in sample)
+
+    # Test for simulate_bulk.
 
     samples = ensemble.simulate_bulk([100, 102], [[],[]], Ns=None)
     assert len(samples) == ensemble.chains
@@ -47,9 +55,13 @@ def test_cc_ensemble_crash():
     assert all(len(s)==2 for sample in samples for s in sample[0])
     assert all(len(s)==1 for sample in samples for s in sample[1])
 
+    # Test for logpdf.
+
     logps = ensemble.logpdf(None, samples[0][1][0])
     assert len(logps) == ensemble.chains
     assert all(isinstance(l, float) for l in logps)
+
+    # Test for logpdf_bulk.
 
     logps = ensemble.logpdf_bulk(None, samples[0][0])
     assert len(logps) == ensemble.chains
