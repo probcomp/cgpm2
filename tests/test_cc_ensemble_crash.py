@@ -10,14 +10,17 @@ from cgpm.utils.general import get_prng
 from cgpm2.crosscat_ensemble import CrossCatEnsemble
 
 
-def test_cc_ensemble_crash():
-    prng = get_prng(2)
+def get_crosscat_ensemble(prng):
     ensemble = CrossCatEnsemble(outputs=[1,2], inputs=[],
         distributions=[('normal', None), ('normal', None)], chains=10, rng=prng)
     ensemble.observe(1, {1:-1, 2:-1})
     ensemble.observe_bulk([2,3], [{1:-2, 2:-2}, {1:-3, 2:-3}], multiprocess=0)
     ensemble.observe(4, {1:-4})
+    return ensemble
 
+def test_cc_ensemble_crash():
+    prng = get_prng(2)
+    ensemble = get_crosscat_ensemble(prng)
     program = ensemble.make_default_inference_program(N=10)
     with pytest.raises(AssertionError):
         # Misaligned rowids (for crosscat states with two views).
