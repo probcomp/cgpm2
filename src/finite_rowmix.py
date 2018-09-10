@@ -251,6 +251,8 @@ class FiniteRowMixture(CGPM):
     def _logpdf_one(self, rowid, targets, constraints, inputs, component):
         """Assess logpdf in fixed mixture component."""
         targets_x = get_intersection(self.outputs_x, targets)
+        if not targets_x:
+            return 0
         constraints_x = get_intersection(self.outputs_x, constraints)
         inputs_x = get_intersection(self.outputs_x, inputs)
         inputs_arr = merged(inputs_x, {self.indexer: component})
@@ -259,4 +261,4 @@ class FiniteRowMixture(CGPM):
             targets=targets_x,
             constraints=constraints_x,
             inputs=inputs_arr,
-        ) if targets_x else 0
+        )
