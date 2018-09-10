@@ -124,7 +124,7 @@ class FiniteRowMixture(CGPM):
                 constraints=None,
                 inputs=inputs,
                 component=z
-            ) if constraints else 0
+            )
             return lp_x_joint - lp_x_constraints
         else:
             # Marginalize over cluster assignment by enumeration.
