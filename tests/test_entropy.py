@@ -59,7 +59,6 @@ def test_entropy_bernoulli_univariate__ci_():
     assert not integration or np.allclose(entropy_exact, entropy_mi, atol=.1)
     assert not integration or np.allclose(entropy_logpdf, entropy_mi, atol=.05)
 
-
 def test_entropy_bernoulli_bivariate__ci_():
     # Set the test parameters.
     integration = pytest.config.getoption('--integration')
