@@ -261,7 +261,7 @@ class CrossCatEnsemble(object):
         return self._simulate(_evaluate_bulk, rowids, targets, constraints,
             inputs, Ns, multiprocess)
 
-    # Heterogeneous simulate.
+    # Heterogeneous simulate and logpdf.
 
     def _process_heterogenous_args(self, args):
         args_return = args if args is not None else [None] * self.chains
@@ -291,6 +291,29 @@ class CrossCatEnsemble(object):
             inputs=None, Ns=None, multiprocess=1):
         return self._simulate_heterogeneous(_evaluate_bulk, rowid, targets,
             constraints, inputs, Ns, multiprocess)
+
+    def _logpdf_heterogeneous(self, func, rowid, targets, constraints,
+            inputs, multiprocess=1):
+        rowid = self._process_heterogenous_args(rowid)
+        targets = self._process_heterogenous_args(targets)
+        constraints = self._process_heterogenous_args(constraints)
+        inputs = self._process_heterogenous_args(inputs)
+        args = [('logpdf', self.cgpms[chain],
+                (rowid[chain], targets[chain], constraints[chain],
+                    inputs[chain]))
+            for chain in self.chains_list]
+        samples = mapper(func, args, multiprocess)
+        return samples
+
+    def logpdf_heterogeneous(self, rowid, targets, constraints=None,
+            inputs=None, multiprocess=1):
+        return self._logpdf_heterogeneous(_evaluate, rowid, targets,
+            constraints, inputs, multiprocess)
+
+    def logpdf_heterogeneous_bulk(self, rowid, targets, constraints=None,
+            inputs=None, multiprocess=1):
+        return self._logpdf_heterogeneous(_evaluate_bulk, rowid, targets,
+            constraints, inputs, multiprocess)
 
     # Transition.
 
