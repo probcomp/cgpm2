@@ -138,6 +138,21 @@ class CGPM(object):
         """
         raise NotImplementedError
 
+    def render(self, **kwargs):
+        """Return an AST-like representation of the CGPM."""
+        raise NotImplementedError
+
+    def __repr__(self):
+        from pprint import pprint
+        from StringIO import StringIO
+        try:
+            rendering = self.render()
+        except NotImplementedError:
+            rendering = self
+        stream = StringIO()
+        pprint(rendering, stream=stream)
+        return stream.getvalue()
+
     def to_metadata(self):
         """Return the binary (json-friendly) representation of the CGPM.
 

@@ -69,6 +69,9 @@ class DistributionCGPM(CGPM):
         """Return a dictionary of hyperparameters."""
         raise NotImplementedError
 
+    def set_params(self, params):
+        """Force the parameters Q to new values."""
+
     def get_params(self):
         """Return a dictionary of parameters."""
         raise NotImplementedError
