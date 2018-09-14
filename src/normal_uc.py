@@ -30,6 +30,7 @@ class NormalUC(DistributionCGPM):
         # From constructor.
         self.outputs = list(outputs)
         self.inputs = list(inputs)
+        self.hypers = hypers
         self.params = params
         self.rng = rng or get_prng(1)
         # Internal attributes.
@@ -87,6 +88,7 @@ class NormalUC(DistributionCGPM):
         metadata['outputs'] = self.outputs
         metadata['inputs'] = self.inputs
         metadata['data'] = self.data.items()
+        metadata['hypers'] = self.hypers
         metadata['N'] = self.N
         metadata['sum_x'] = self.sum_x
         metadata['sum_x_sq'] = self.sum_x_sq
@@ -99,6 +101,7 @@ class NormalUC(DistributionCGPM):
     def from_metadata(cls, metadata, rng):
         model = cls(metadata['outputs'], metadata['inputs'], rng=rng)
         model.data = OrderedDict(metadata['data'])
+        model.hypers = metadata['hypers']
         model.N = metadata['N']
         model.sum_x = metadata['sum_x']
         model.sum_x_sq = metadata['sum_x_sq']
@@ -112,10 +115,21 @@ class NormalUC(DistributionCGPM):
         return
 
     def set_hypers(self, hypers):
-        pass
+        assert hypers['r'] > 0.
+        assert hypers['s'] > 0.
+        assert hypers['nu'] > 0.
+        self.hypers['m'] = hypers['m']
+        self.hypers['r'] = hypers['r']
+        self.hypers['s'] = hypers['s']
+        self.hypers['nu'] = hypers['nu']
 
     def get_hypers(self):
-        return {}
+        return dict(self.hypers)
+
+    def set_params(self, params):
+        assert params['var'] > 0.
+        self.mu = params['mu']
+        self.var = params['var']
 
     def get_params(self):
         return {'mu': self.mu, 'var': self.var}
