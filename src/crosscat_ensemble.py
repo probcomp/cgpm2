@@ -8,28 +8,27 @@ import multiprocessing
 
 import numpy as np
 
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import simulate_crp_constrained
-from cgpm.utils.parallel_map import parallel_map
+from parallel_map import parallel_map
 
-from cgpm2.entropy import mutual_information
+from .bernoulli import Bernoulli
+from .categorical import Categorical
+from .crp import CRP
+from .normal import Normal
+from .poisson import Poisson
 
-from cgpm2.sample_crosscat import generate_random_partition
+from .flexible_rowmix import FlexibleRowMixture
+from .product import Product
 
-from cgpm2.bernoulli import Bernoulli
-from cgpm2.categorical import Categorical
-from cgpm2.crp import CRP
-from cgpm2.normal import Normal
-from cgpm2.poisson import Poisson
+from .entropy import mutual_information
+from .sample_crosscat import generate_random_partition
+from .transition_rows import get_rowids
 
-from cgpm2.flexible_rowmix import FlexibleRowMixture
-from cgpm2.product import Product
+from .transition_crosscat import GibbsCrossCat
+from .transition_crosscat_cpp import partition_assignments_to_blocks
 
-from cgpm2.transition_rows import get_rowids
-
-from cgpm2.transition_crosscat import GibbsCrossCat
-from cgpm2.transition_crosscat_cpp import partition_assignments_to_blocks
+from .utils import build_cgpm
+from .utils import get_prng
+from .utils import simulate_crp_constrained
 
 # Initializer for CrossCat state.
 
@@ -63,7 +62,7 @@ def make_random_partition(N, alpha, Cd, Ci, rng):
     assignments = simulate_crp_constrained(N, alpha, Cd, Ci, [], [], rng)
     return partition_assignments_to_blocks(assignments)
 
-def make_random_crosscat((outputs, distributions, Cd, Ci, seed)):
+def make_random_crosscat(outputs, distributions, Cd, Ci, seed):
     rng = get_prng(seed)
     alpha = rng.gamma(2,1)
     N = len(outputs)
@@ -80,31 +79,38 @@ def make_random_crosscat((outputs, distributions, Cd, Ci, seed)):
 
 # Generic multiprocessing functions.
 
-def _modify((method, crosscat, args)):
+def _modify(method_crosscat_args):
+    method, crosscat, args = method_crosscat_args
     getattr(crosscat, method)(*args)
     return crosscat
 
-def _modify_bulk((method, crosscat, args)):
+def _modify_bulk(method_crosscat_args):
+    method, crosscat, args = method_crosscat_args
     args_list = make_args_list(*args)
     for args in args_list:
         getattr(crosscat, method)(*args)
     return crosscat
 
-def _evaluate((method, crosscat, args)):
+def _evaluate(method_crosscat_args):
+    method, crosscat, args = method_crosscat_args
     return getattr(crosscat, method)(*args)
 
-def _evaluate_bulk((method, crosscat, args)):
+def _evaluate_bulk(method_crosscat_args):
+    method, crosscat, args = method_crosscat_args
     args_list = make_args_list(*args)
     return [getattr(crosscat, method)(*args) for args in args_list]
 
-def _evaluate2((method, crosscat, args)):
+def _evaluate2(method_crosscat_args):
+    method, crosscat, args = method_crosscat_args
     return method(crosscat, *args)
 
-def _evaluate2_bulk((method, crosscat, args)):
+def _evaluate2_bulk(method_crosscat_args):
+    method, crosscat, args = method_crosscat_args
     args_list = make_args_list(*args)
     return [method(crosscat, *args) for args in args_list]
 
-def _alter((funcs, crosscat)):
+def _alter(funcs_crosscat):
+    funcs, crosscat = funcs_crosscat
     for func in funcs:
         crosscat = func(crosscat)
     return crosscat
@@ -119,7 +125,7 @@ def make_args_list(*args):
         else:
             assert len(arg) == N
             return arg
-    args_list = map(listify, args)
+    args_list = list(map(listify, args))
     return zip(*args_list)
 
 # Custom CrossCat query functions.
@@ -158,7 +164,7 @@ def same_assignment_row_pairwise(crosscat, output):
 
 def mapper(func, args, multiprocess):
     if not multiprocess:
-        return map(func, args)
+        return list(map(func, args))
     else:
         parllelism = min(len(args), multiprocessing.cpu_count())
         return parallel_map(func, args, parallelism=parllelism)
@@ -181,8 +187,10 @@ class CrossCatEnsemble(object):
         # Derived attributes.
         self.chains_list = range(chains)
         seeds = self.rng.randint(0, 2**32-1, size=chains)
-        self.cgpms = map(make_random_crosscat,
-            [(outputs, distributions, self.Cd, self.Ci, seed) for seed in seeds])
+        self.cgpms = [
+            make_random_crosscat(outputs, distributions, self.Cd, self.Ci, seed)
+            for seed in seeds
+        ]
 
     # Observe.
 

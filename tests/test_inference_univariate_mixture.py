@@ -6,8 +6,6 @@
 import pytest
 import numpy as np
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.categorical import Categorical
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
@@ -21,6 +19,7 @@ from cgpm2.transition_hypers import transition_hyper_grids
 from cgpm2.transition_hypers import transition_hypers
 from cgpm2.transition_rows import transition_rows
 
+from cgpm2.utils import get_prng
 from cgpm2.walks import get_cgpms_by_output_index
 
 # Test utilities.

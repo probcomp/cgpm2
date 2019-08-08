@@ -7,10 +7,8 @@ import itertools
 
 from math import isnan
 
-from cgpm.utils.general import log_pflip
-
 from .distribution import DistributionCGPM
-
+from .utils import log_pflip
 
 def transition_hypers(cgpms, grids, rng):
     """Transitions hyperparameters of cgpms greedily."""
@@ -43,7 +41,7 @@ def transition_hypers_full(cgpms, grids, rng):
     assert all([isinstance(cgpm, DistributionCGPM) for cgpm in cgpms])
     assert all([type(cgpm) is type(cgpms[0]) for cgpm in cgpms])
     hypers = grids.keys()
-    cells = list(itertools.product(*(grids.itervalues())))
+    cells = list(itertools.product(*(grids.values())))
     logps = []
     for cell in cells:
         proposal = dict(zip(hypers, cell))
@@ -62,7 +60,7 @@ def transition_hyper_grids(cgpms, n_grid=30):
     """Get hyperparameter grid using Empirical Bayes across all CGPMs."""
     assert all([isinstance(cgpm, DistributionCGPM) for cgpm in cgpms])
     assert all([type(cgpm) is type(cgpms[0]) for cgpm in cgpms])
-    X = [x for cgpm in cgpms for x in cgpm.data.itervalues() if not isnan(x)]
+    X = [x for cgpm in cgpms for x in cgpm.data.values() if not isnan(x)]
     return cgpms[0].construct_hyper_grids(X, n_grid)
 
 def set_hypers(cgpms, hypers):

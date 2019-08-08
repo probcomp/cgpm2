@@ -3,8 +3,6 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
 from cgpm2.poisson import Poisson
@@ -15,8 +13,8 @@ from cgpm2.product import Product
 from cgpm2.transition_hypers import transition_hyper_grids
 from cgpm2.transition_hypers import transition_hypers
 
+from cgpm2.utils import get_prng
 from cgpm2.walks import get_cgpms_by_output_index
-
 
 def test_transition_hypers_basic():
     prng = get_prng(2)
@@ -40,7 +38,7 @@ def test_transition_hypers_basic():
     normal_cgpms = get_cgpms_by_output_index(infinite_mixture, 1)
     grids_normal = transition_hyper_grids(normal_cgpms, 30)
     hypers_normal = [transition_hypers(normal_cgpms, grids_normal, prng)
-        for _i in xrange(2)]
+        for _i in range(2)]
     assert not all(hypers == hypers_normal[0] for hypers in hypers_normal)
     log_score1 = infinite_mixture.logpdf_score()
     assert log_score0 < log_score1

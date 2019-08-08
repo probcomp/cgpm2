@@ -5,9 +5,6 @@
 
 import itertools
 
-from cgpm.utils.validation import validate_dependency_constraints
-from cgpm.utils.validation import validate_crp_constrained_partition
-
 from .crp import CRP
 from .distribution import DistributionCGPM
 from .flexible_rowmix import FlexibleRowMixture
@@ -29,8 +26,9 @@ from .transition_views import get_cgpm_current_view_index
 from .transition_views import set_cgpm_view_assignment
 from .transition_views import transition_cgpm_view_assigments
 
+from .utils import validate_crp_constrained_partition
+from .utils import validate_dependency_constraints
 from .walks import get_cgpms_by_output_index
-
 
 def get_distribution_outputs(crosscat):
     return list(itertools.chain.from_iterable(
@@ -127,12 +125,12 @@ class GibbsCrossCat(object):
 
     def transition_hypers_distributions(self, outputs=None):
         distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
-        for output, cgpms in distribution_cgpms.iteritems():
+        for output, cgpms in distribution_cgpms.items():
             transition_hypers(cgpms, self.grids[output], self.crosscat.rng)
 
     def transition_hypers_row_divide(self, outputs=None):
         crp_cgpms = get_row_divide_cgpms(self.crosscat, outputs)
-        for _output, cgpms in crp_cgpms.iteritems():
+        for _output, cgpms in crp_cgpms.items():
             transition_hypers(cgpms, self.grids['row_divide'], self.crosscat.rng)
 
     def transition_hypers_column_divide(self):
@@ -140,7 +138,7 @@ class GibbsCrossCat(object):
 
     def transition_hyper_grids_distribution(self, outputs=None):
         distribution_cgpms = get_distribution_cgpms(self.crosscat, outputs)
-        for output, cgpms in distribution_cgpms.iteritems():
+        for output, cgpms in distribution_cgpms.items():
             self.grids[output] = transition_hyper_grids(cgpms)
 
     def transition_hyper_grids_row_divide(self):

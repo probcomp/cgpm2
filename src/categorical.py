@@ -11,13 +11,12 @@ import numpy as np
 
 from scipy.special import gammaln
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import log_linspace
-from cgpm.utils.general import pflip
-from cgpm.utils.general import simulate_many
-
 from .distribution import DistributionCGPM
 
+from .utils import get_prng
+from .utils import log_linspace
+from .utils import pflip
+from .utils import simulate_many
 
 class Categorical(DistributionCGPM):
 
@@ -166,5 +165,5 @@ def calc_predictive_logp(x, N, counts, alpha):
 def calc_logpdf_marginal(N, counts, alpha):
     K = len(counts)
     A = K * alpha
-    lg = sum(gammaln(counts[k] + alpha) for k in xrange(K))
+    lg = sum(gammaln(counts[k] + alpha) for k in range(K))
     return gammaln(A) - gammaln(A+N) + lg - K * gammaln(alpha)

@@ -5,18 +5,17 @@
 
 import numpy as np
 
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import get_intersection
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import lchain
-from cgpm.utils.general import log_normalize
-from cgpm.utils.general import log_pflip
-from cgpm.utils.general import logsumexp
-from cgpm.utils.general import merged
-
 from .finite_array import FiniteArray
 from .icgpm import CGPM
 
+from .utils import build_cgpm
+from .utils import get_intersection
+from .utils import get_prng
+from .utils import lchain
+from .utils import log_normalize
+from .utils import log_pflip
+from .utils import logsumexp
+from .utils import merged
 
 class FiniteRowMixture(CGPM):
 
@@ -57,7 +56,7 @@ class FiniteRowMixture(CGPM):
         zs = log_pflip(z_weights, array=z_support, size=(N or 1), rng=self.rng)
         counts = {z:n for z,n in enumerate(np.bincount(zs)) if n}
         samples = [self._simulate_one(rowid, targets, constraints, inputs, n, z)
-            for z, n in counts.iteritems()]
+            for z, n in counts.items()]
         return samples[0][0] if N is None else lchain(*samples)
 
     def logpdf(self, rowid, targets, constraints=None, inputs=None):

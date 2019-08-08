@@ -6,17 +6,15 @@
 import itertools
 import numpy as np
 
-from cgpm.utils.general import log_pflip
-
 from .crp import CRP
 from .distribution import DistributionCGPM
 from .flexible_rowmix import FlexibleRowMixture
 from .product import Product
 
+from .utils import log_pflip
 from .walks import add_cgpm
 from .walks import get_cgpms_by_output_index
 from .walks import remove_cgpm
-
 
 def get_dataset(cgpm, output):
     cgpms = get_cgpms_by_output_index(cgpm, output)
@@ -24,7 +22,7 @@ def get_dataset(cgpm, output):
     return [
         (rowid, {c:v for c, v in zip(cgpm.outputs, np.atleast_1d(row))})
         for cgpm in cgpms
-        for rowid, row in cgpm.data.iteritems()
+        for rowid, row in cgpm.data.items()
     ]
 
 def get_cgpm_base(cgpm, output):
@@ -80,7 +78,7 @@ def get_cgpm_view_proposals_singleton(crosscat, outputs, aux):
     return [
         get_cgpm_view_proposal_singleton_one(
             crosscat, cgpm_base_list, dataset_list)
-        for _m in xrange(aux)
+        for _m in range(aux)
     ]
 
 def get_cgpm_view_proposals(crosscat, outputs, aux):

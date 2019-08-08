@@ -11,9 +11,8 @@ from math import sqrt
 
 from scipy.stats import norm
 
-from cgpm.utils.general import get_prng
-
 from .distribution import DistributionCGPM
+from .utils import get_prng
 
 LOG2 = log(2)
 LOGPI = log(pi)

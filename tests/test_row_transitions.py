@@ -3,8 +3,6 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.categorical import Categorical
 from cgpm2.normal import Normal
 
@@ -12,6 +10,8 @@ from cgpm2.finite_rowmix import FiniteRowMixture
 from cgpm2.product import Product
 
 from cgpm2.transition_rows import transition_rows
+
+from cgpm2.utils import get_prng
 
 def test_transition_rows_fixed_mixture():
     prng = get_prng(2)
@@ -49,7 +49,7 @@ def test_transition_rows_fixed_mixture():
     assert finite_mixture.simulate(4, [2]) == {2:0}
     assert finite_mixture.simulate(5, [2]) == {2:0}
     # Run transitions
-    for _i in xrange(10):
+    for _i in range(10):
         for rowid in range(6):
             transition_rows(finite_mixture, rowid, prng)
     # Confirm all rows in correct components.

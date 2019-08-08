@@ -8,15 +8,18 @@ from math import isnan
 from math import lgamma
 from math import log
 from math import pi
+from math import sqrt
 
 import numba
 import numpy as np
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import log_linspace
-from cgpm.utils.general import simulate_many
+from scipy.stats import t as student_t
 
 from .distribution import DistributionCGPM
+
+from .utils import get_prng
+from .utils import log_linspace
+from .utils import simulate_many
 
 LOG2 = log(2)
 LOGPI = log(pi)
@@ -24,6 +27,7 @@ LOG2PI = LOG2 + LOGPI
 
 
 class Normal(DistributionCGPM):
+    # http://www.stats.ox.ac.uk/~teh/research/notes/GaussianInverseGamma.pdf
 
     def __init__(self, outputs, inputs, hypers=None, params=None,
             distargs=None, rng=None):

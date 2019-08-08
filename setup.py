@@ -3,17 +3,19 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
+import os
+
+# If some modules are not found, we use others, so no need to warn:
 try:
     from setuptools import setup
     from setuptools.command.build_py import build_py
     from setuptools.command.sdist import sdist
     from setuptools.command.test import test
 except ImportError:
-    from distutils.core import setup
     from distutils.cmd import Command
     from distutils.command.build_py import build_py
     from distutils.command.sdist import sdist
-
+    from distutils.core import setup
     class test(Command):
         def __init__(self, *args, **kwargs):
             Command.__init__(self, *args, **kwargs)
@@ -25,6 +27,12 @@ except ImportError:
             Command.set_undefined_options(self, opt, val)
 
 def get_version():
+    # The .git directory does not exist in the sdist, so read VERSION.
+    if not os.path.exists('.git'):
+        with open('VERSION', 'r') as f:
+            version = f.read().strip()
+            return version, version
+
     import re
     import subprocess
     # git describe a commit using the most recent tag reachable from it.
@@ -38,7 +46,7 @@ def get_version():
     desc = subprocess.check_output([
         'git', 'describe', '--dirty', '--long', '--match', 'v*',
     ])
-    match = re.match(r'^v([^-]*)-([0-9]+)-(.*)$', desc)
+    match = re.match(r'^v([^-]*)-([0-9]+)-(.*)$', desc.decode('utf-8'))
     assert match is not None
     verpart, revpart, localpart = match.groups()
     # Create a post version.
@@ -66,7 +74,8 @@ def get_version():
 
     return pkg_version, full_version
 
-pkg_version, full_version = get_version()
+PKG_VERSION, FULL_VERSION = get_version()
+VERSION_PY = 'src/version.py'
 
 def write_version_py(path):
     try:
@@ -74,23 +83,23 @@ def write_version_py(path):
             version_old = f.read()
     except IOError:
         version_old = None
-    version_new = '__version__ = %r\n' % (full_version,)
+    version_new = '__version__ = %r\n' % (FULL_VERSION,)
     if version_old != version_new:
-        print 'writing %s' % (path,)
-        with open(path, 'wb') as f:
+        print('writing %s' % (path,))
+        with open(path, 'w') as f:
             f.write(version_new)
 
 def readme_contents():
-    import os.path
     readme_path = os.path.join(
         os.path.abspath(os.path.dirname(__file__)),
         'README.md')
     with open(readme_path) as readme_file:
-        return unicode(readme_file.read(), 'UTF-8')
+        return readme_file.read()
+
 
 class local_build_py(build_py):
     def run(self):
-        write_version_py(version_py)
+        write_version_py(VERSION_PY)
         build_py.run(self)
 
 # Make sure the VERSION file in the sdist is exactly specified, even
@@ -99,7 +108,6 @@ class local_build_py(build_py):
 # the sdist.
 class local_sdist(sdist):
     def make_release_tree(self, base_dir, files):
-        import os
         sdist.make_release_tree(self, base_dir, files)
         version_file = os.path.join(base_dir, 'VERSION')
         print('updating %s' % (version_file,))
@@ -108,17 +116,14 @@ class local_sdist(sdist):
         # interrupted the whole sdist directory is only partially
         # written) but because the upstream sdist may have made a hard
         # link, so overwriting in place will edit the source tree.
-        with open(version_file + '.tmp', 'wb') as f:
-            f.write('%s\n' % (pkg_version,))
+        with open(version_file + '.tmp', 'w') as f:
+            f.write('%s\n' % (PKG_VERSION,))
         os.rename(version_file + '.tmp', version_file)
 
-# XXX These should be attributes of `setup', but helpful distutils
-# doesn't pass them through when it doesn't know about them a priori.
-version_py = 'src/version.py'
 
 setup(
     name='cgpm2',
-    version=pkg_version,
+    version=PKG_VERSION,
     description='Composable Generative Population Models',
     long_description=readme_contents(),
     url='https://github.com/probcomp/cgpm2',

@@ -5,8 +5,6 @@
 
 import pytest
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
 from cgpm2.poisson import Poisson
@@ -14,6 +12,7 @@ from cgpm2.poisson import Poisson
 from cgpm2.flexible_rowmix import FlexibleRowMixture
 from cgpm2.product import Product
 
+from cgpm2.utils import get_prng
 from cgpm2.walks import get_cgpms_by_output_index
 
 def test_product_mixture_walk():

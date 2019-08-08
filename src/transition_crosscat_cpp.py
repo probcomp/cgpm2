@@ -22,7 +22,6 @@ from .transition_views import get_cgpm_current_view_index
 from .transition_views import get_dataset
 from .transition_views import set_cgpm_view_assignment
 
-
 def partition_assignments_to_blocks(assignments):
     unique = set(assignments)
     return [[i for i, a in enumerate(assignments) if a == u] for u in unique]
@@ -106,7 +105,7 @@ def _get_crosscat_M_c(crosscat, observations):
 # CrossCat T.
 
 def observations_to_rowids_mapping(observations):
-    rowids_list = [set(d.iterkeys()) for d in observations.itervalues()]
+    rowids_list = [set(d.keys()) for d in observations.values()]
     assert all(rowids_list[0]==r for r in rowids_list[1:]), 'Misaligned rowids'
     rowids_sorted = sorted(rowids_list[0])
     return OrderedDict(enumerate(rowids_sorted))
@@ -128,7 +127,7 @@ def _get_crosscat_T(crosscat, M_c, observations):
     """Create dataset T from crosscat."""
     outputs = get_distribution_outputs(crosscat)
     rowids_mapping = observations_to_rowids_mapping(observations)
-    rowids = rowids_mapping.itervalues()
+    rowids = rowids_mapping.values()
     return [
         [crosscat_value_to_code(M_c, observations[col][row], i)
             for (i, col) in enumerate(outputs)]
@@ -187,7 +186,7 @@ def create_view_state(view, row_partition):
     # Generate X_L['view_state'][v]['column_component_suffstats']
     num_blocks = len(set(row_partition))
     column_component_suffstats = [
-        [{} for _b in xrange(num_blocks)]
+        [{} for _b in range(num_blocks)]
         for _d in view.outputs[1:]
     ]
 
@@ -257,7 +256,7 @@ def _get_crosscat_X_L(crosscat, M_c, X_D, Cd, Ci):
         col_ensure['independent'] = {
             str(outputs_mapping_inverse[column]) :
                 [outputs_mapping_inverse[c] for c in block]
-            for column, block in get_scc_from_tuples(Ci).iteritems()
+            for column, block in get_scc_from_tuples(Ci).items()
         }
 
     return {
@@ -320,8 +319,8 @@ def _get_crosscat_updated(crosscat, observations, M_c, X_L, X_D):
 
 def _progress(n_steps, max_time, step_idx, elapsed_secs, end=None):
     if end:
-        print '\rCompleted: %d iterations in %f seconds.' %\
-            (step_idx, elapsed_secs)
+        print('\rCompleted: %d iterations in %f seconds.' %
+            (step_idx, elapsed_secs))
     else:
         p_seconds = elapsed_secs / max_time if max_time != -1 else 0
         p_iters = float(step_idx) / n_steps
@@ -377,7 +376,7 @@ def transition_cpp(crosscat, N=None, S=None, kernels=None, rowids=None,
         rowids = ()
     else:
         rowids_mapping = observations_to_rowids_mapping(observations)
-        rowids_mapping_inverse = {r:i for i, r in rowids_mapping.iteritems()}
+        rowids_mapping_inverse = {r:i for i, r in rowids_mapping.items()}
         rowids = [rowids_mapping_inverse[r] for r in rowids]
 
     M_c = _get_crosscat_M_c(crosscat, observations)

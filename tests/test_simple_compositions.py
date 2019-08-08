@@ -6,8 +6,6 @@
 import numpy as np
 import pytest
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.categorical import Categorical
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
@@ -20,6 +18,7 @@ from cgpm2.flexible_array import FlexibleArray
 from cgpm2.flexible_rowmix import FlexibleRowMixture
 from cgpm2.product import Product
 
+from cgpm2.utils import get_prng
 
 def test_simple_product():
     prng = get_prng(2)

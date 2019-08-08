@@ -15,15 +15,14 @@ from collections import namedtuple
 import numpy as np
 
 from numpy.linalg import det
-
 from scipy.special import gammaln
 
-from cgpm.utils.data import dummy_code
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import log_linspace
-from cgpm.utils.general import simulate_many
-
 from .distribution import DistributionCGPM
+
+from .utils import dummy_code
+from .utils import get_prng
+from .utils import log_linspace
+from .utils import simulate_many
 
 
 LOG2PI = log(2*pi)
@@ -84,7 +83,7 @@ class LinearRegression(DistributionCGPM):
 
     def observe(self, rowid, observation, inputs=None):
         assert rowid not in self.data
-        assert observation.keys() == self.outputs
+        assert list(observation) == self.outputs
         x = observation[self.outputs[0]]
         y_raw = [inputs.get(i) for i in self.inputs]
         y_dum = self.process_inputs(inputs)
@@ -102,7 +101,7 @@ class LinearRegression(DistributionCGPM):
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         assert rowid not in self.data
         assert not constraints
-        assert targets.keys() == self.outputs
+        assert list(targets) == self.outputs
         x = targets[self.outputs[0]]
         y_dum = self.process_inputs(inputs)
         return calc_predictive_logp(x, y_dum, self.N, self.data_ydum.values(),

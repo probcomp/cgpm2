@@ -5,15 +5,14 @@
 
 import itertools as it
 
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import flatten_cgpms
-from cgpm.utils.general import get_intersection
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import lchain
-from cgpm.utils.general import mergedl
-
 from .chain import Chain
 
+from .utils import build_cgpm
+from .utils import flatten_cgpms
+from .utils import get_intersection
+from .utils import get_prng
+from .utils import lchain
+from .utils import mergedl
 
 class Product(Chain):
 

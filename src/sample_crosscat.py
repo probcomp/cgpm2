@@ -3,28 +3,27 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from math import isnan
-
 import itertools
-import yaml
-
-from cStringIO import StringIO
-from collections import OrderedDict
-from collections import namedtuple
-
-import numpy as np
 import tempfile
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import merged
-from cgpm.utils.general import mergedl
+from math import isnan
 
-from cgpm2.transition_crosscat import get_distribution_outputs
-from cgpm2.transition_rows import get_rowids
-from cgpm2.transition_views import get_cgpm_current_view_index
+from collections import OrderedDict
+from collections import namedtuple
+from io import StringIO
 
+import numpy as np
+import yaml
 
-generate_output_ast = iter(xrange(10**5, 10**6))
+from .transition_crosscat import get_distribution_outputs
+from .transition_rows import get_rowids
+from .transition_views import get_cgpm_current_view_index
+
+from .utils import get_prng
+from .utils import merged
+from .utils import mergedl
+
+generate_output_ast = iter(range(10**5, 10**6))
 
 def sample_hyperparameter(_distribution, _hyper, rng):
     """Dummy function to fetch hyperparameters for univariate distribution."""
@@ -61,7 +60,7 @@ def generate_random_hyperparameters(distribution, rng):
 def generate_random_partition(alpha, N, rng):
     """Randomly samples a partition of [N], distributed as CRP(alpha)."""
     partition = []
-    for customer in xrange(N):
+    for customer in range(N):
         weights = np.array([len(block) for block in partition] + [alpha])
         probs = weights/float(sum(weights))
         assignment = rng.choice(range(len(weights)), p=probs)
@@ -119,13 +118,13 @@ def core_compile_key_list(stream, i, k):
 
 def core_compile_hypers(stream, i, hypers):
     core_compile_key(stream, i, 'hypers')
-    for k,v in hypers.iteritems():
+    for k,v in hypers.items():
         core_compile_key_val(stream, i+2, k, v)
 
 def core_compile_distargs(stream, i, distargs):
     core_compile_key(stream, i, 'distargs')
     if distargs:
-        for k, v in distargs.iteritems():
+        for k, v in distargs.items():
             core_compile_key_val(stream, i+2, k, v)
 
 def core_compile_distribution(stream, i, distribution):
@@ -160,9 +159,9 @@ def compile_ast_to_core_dsl(ast, stream=None):
 
 def core_parse_distribution(ast_distribution):
     assert len(ast_distribution) == 1
-    distname = ast_distribution.keys()[0]
-    distargs = ast_distribution.values()[0]['distargs']
-    hypers = ast_distribution.values()[0]['hypers']
+    distname = list(ast_distribution.keys())[0]
+    distargs = list(ast_distribution.values())[0]['distargs']
+    hypers = list(ast_distribution.values())[0]['hypers']
     assert '{' in distname
     distname, output = distname.replace('}','').replace('id:','').split('{')
     return (int(output), (distname, distargs), hypers)
@@ -212,14 +211,14 @@ def embedded_compile_kwarg(stream, i, k, v):
 
 def embedded_compile_primitive(stream, i, ast_primitive):
     assert len(ast_primitive) == 1
-    distname, output = embedded_get_distname_output(ast_primitive.keys()[0])
+    distname, output = embedded_get_distname_output(list(ast_primitive.keys())[0])
     kwargs = ast_primitive.values()[0]
     core_compile_indent(stream, i)
     constructor = primitive_constructors[distname]
     stream.write('%s(' % (constructor))
     embedded_compile_kwarg(stream, 0, 'outputs', [output])
     embedded_compile_kwarg(stream, 1, 'inputs', [])
-    for k, v in kwargs.iteritems():
+    for k, v in kwargs.items():
         if v is not None:
             embedded_compile_kwarg(stream, 1, k, v)
     stream.write(')')
@@ -262,7 +261,7 @@ def compile_core_dsl_to_embedded_dsl(core_dsl, stream=None):
         ast_view = ast_view_full['view']
         embedded_compile_row_mixture(stream, 0, v, ast_view)
         stream.write('\n')
-    views = ', '.join('view%d' % (v,) for v in xrange(len(core_dsl_yaml)))
+    views = ', '.join('view%d' % (v,) for v in range(len(core_dsl_yaml)))
     stream.write('crosscat = Product(cgpms=[%s])' % (views,))
     return stream
 
@@ -310,16 +309,16 @@ def convert_crosscat_to_embedded_dsl_model(crosscat, stream=None):
 # CrossCat Binary -> Embedded DSL observes.
 
 def reindex_crp_observes(observes):
-    output = next(observes[0].iterkeys())
-    assert all(observe.keys() == [output] for observe in observes)
-    assignments = [observe.items()[0] for observe in observes]
+    output = next(observes[0].keys())
+    assert all(list(observe) == [output] for observe in observes)
+    assignments = [list(observe.items())[0] for observe in observes]
     tables = sorted(set([table for _output, table in assignments]))
     mapping = {t:i for i,t in enumerate(tables)}
     return [{output: mapping[table]} for output, table in assignments]
 
 def get_sorted_rowids(rowids, observes):
-    output = next(observes[0].iterkeys())
-    assert all(observe.keys() == [output] for observe in observes)
+    output = next(observes[0].keys())
+    assert all(list(observe) == [output] for observe in observes)
     assert len(observes) == len(rowids)
     table_to_rowids = {}
     for rowid, observe in zip(rowids, observes):
@@ -343,9 +342,9 @@ def get_product_observes(product, rowid):
 
 def get_components_observes(components_array, rowid):
     product_observes_all = [get_product_observes(product, rowid)
-        for product in components_array.cgpms.itervalues()
+        for product in components_array.cgpms.values()
     ]
-    product_observes = filter(lambda x: x, product_observes_all)
+    product_observes = list(filter(lambda x: x, product_observes_all))
     assert len(product_observes) == 1
     return product_observes[0]
 
@@ -380,7 +379,7 @@ def get_crosscat_observes(crosscat):
     return [get_view_observes(view) for view in crosscat.cgpms]
 
 def convert_observes_to_embedded_dsl(observes, stream):
-    for rowid, observation in observes.iteritems():
+    for rowid, observation in observes.items():
         stream.write('crosscat.observe(%d, %s)' % (rowid, observation))
         stream.write('\n')
 
@@ -454,7 +453,7 @@ def get_array_distributions(cgpm_components_array, tables):
 
 def tranpose_product_list(products):
     num_distributions = len(products[0])
-    return [[prod[i] for prod in products] for i in xrange(num_distributions)]
+    return [[prod[i] for prod in products] for i in range(num_distributions)]
 
 def get_crp_tables_weights(crp_cgpm):
     tables = sorted(crp_cgpm.counts.keys())
@@ -488,7 +487,7 @@ def get_view_observes_data_vs(view):
         for rowid in rowids
     ]
     def convert_observation(rowid, obs):
-        return ((rowid, get_variable_name(k), v) for k,v in obs.iteritems())
+        return ((rowid, get_variable_name(k), v) for k,v in obs.items())
     return list(itertools.chain.from_iterable(
         convert_observation(rowid, obs) for obs in observe_components
     ))
@@ -672,15 +671,15 @@ if __name__ == '__main__':
     ]
 
     ast = generate_random_ast(schema, prng)
-    print ast
+    print(ast)
 
     core_dsl = compile_ast_to_core_dsl(ast)
-    print core_dsl.getvalue()
+    print(core_dsl.getvalue())
 
-    print parse_core_dsl_to_ast(core_dsl.getvalue())
+    print(parse_core_dsl_to_ast(core_dsl.getvalue()))
 
     embedded_dsl = compile_core_dsl_to_embedded_dsl(core_dsl.getvalue())
-    print embedded_dsl.getvalue()
+    print(embedded_dsl.getvalue())
 
     exec(embedded_dsl.getvalue())
 
@@ -688,10 +687,10 @@ if __name__ == '__main__':
     crosscat.observe(2, {0:2, 1:3, 4:1, 5:8})
 
     # Go from the model -> ast -> code (will be done post inference).
-    # print convert_crosscat_to_embedded_dsl_model(crosscat).getvalue()
+    # print(convert_crosscat_to_embedded_dsl_model(crosscat).getvalue())
     # observes = convert_crosscat_to_embedded_dsl_observe(crosscat)
-    # print observes.getvalue()
+    # print(observes.getvalue())
 
-    print render_trace_in_embedded_dsl(crosscat).getvalue()
+    print(render_trace_in_embedded_dsl(crosscat).getvalue())
 
-    print render_trace_in_venturescript(crosscat, schema).getvalue()
+    print(render_trace_in_venturescript(crosscat, schema).getvalue())

@@ -5,8 +5,6 @@
 
 import itertools
 
-from cgpm.utils.general import build_cgpm
-
 from .chain import Chain
 from .distribution import DistributionCGPM
 from .finite_array import FiniteArray
@@ -15,6 +13,7 @@ from .flexible_array import FlexibleArray
 from .flexible_rowmix import FlexibleRowMixture
 from .product import Product
 
+from .utils import build_cgpm
 
 def clone_cgpm(cgpm_base, rng):
     """Create clone of given CGPM."""
@@ -34,7 +33,7 @@ def get_cgpms_by_output_index(cgpm, output):
         return list(itertools.chain.from_iterable(cgpm_list))
     elif isinstance(cgpm, FlexibleArray):
         cgpm_list = [get_cgpms_by_output_index(c, output) for c in
-            cgpm.cgpms.values() + [cgpm.cgpm_base]]
+            list(cgpm.cgpms.values()) + [cgpm.cgpm_base]]
         return list(itertools.chain.from_iterable(cgpm_list))
     elif isinstance(cgpm, (FiniteRowMixture, FlexibleRowMixture)):
         if output in cgpm.cgpm_row_divide.outputs:
@@ -98,7 +97,7 @@ def add_cgpm(cgpm, cgpm_new):
     elif isinstance(cgpm, FlexibleArray):
         cgpm_base_new = add_cgpm(cgpm.cgpm_base, cgpm_new)
         cgpms_new = {i: add_cgpm(c, clone_cgpm(cgpm_new, cgpm.rng))
-            for i, c in cgpm.cgpms.iteritems()}
+            for i, c in cgpm.cgpms.items()}
         result = FlexibleArray(cgpm_base_new, cgpm.indexer, rng=cgpm.rng)
         result.cgpms = cgpms_new
         result.rowid_to_index = cgpm.rowid_to_index

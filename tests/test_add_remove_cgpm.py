@@ -5,16 +5,16 @@
 
 import pytest
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
 
-from cgpm2.product import Product
 from cgpm2.flexible_rowmix import FlexibleRowMixture
+from cgpm2.product import Product
 
-from cgpm2.walks import remove_cgpm
 from cgpm2.walks import add_cgpm
+from cgpm2.walks import remove_cgpm
+
+from cgpm2.utils import get_prng
 
 def test_add_remove():
     prng = get_prng(2)

@@ -7,8 +7,6 @@ from collections import Counter
 
 import numpy as np
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
 
@@ -18,6 +16,7 @@ from cgpm2.transition_hypers import transition_hyper_grids
 from cgpm2.transition_hypers import transition_hypers
 from cgpm2.transition_rows import transition_rows
 
+from cgpm2.utils import get_prng
 from cgpm2.walks import get_cgpms_by_output_index
 
 def test_transition_crp_mixture():
@@ -42,7 +41,7 @@ def test_transition_crp_mixture():
         0 : transition_hyper_grids(cgpms[0], 30),
         1 : transition_hyper_grids(cgpms[1], 30),
     }
-    for _step in xrange(50):
+    for _step in range(50):
         rowids = prng.permutation(range(len(data)))
         for rowid in rowids:
             transition_rows(infinite_mixture, rowid, prng)

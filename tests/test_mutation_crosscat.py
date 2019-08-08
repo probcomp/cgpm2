@@ -5,8 +5,6 @@
 
 import numpy as np
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
 
@@ -15,6 +13,8 @@ from cgpm2.product import Product
 
 from cgpm2.transition_crosscat import GibbsCrossCat
 from cgpm2.transition_crosscat import get_distribution_cgpms
+
+from cgpm2.utils import get_prng
 
 from .test_inference_bivariate_mixture import make_bivariate_two_clusters
 

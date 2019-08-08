@@ -3,8 +3,6 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from cgpm.utils.general import merged
-
 from .categorical import Categorical
 from .chain import Chain
 from .crp import CRP
@@ -16,6 +14,7 @@ from .flexible_rowmix import FlexibleRowMixture
 from .normal import Normal
 from .poisson import Poisson
 from .product import Product
+from .utils import merged
 
 # CGPM to CGPM2 conversion.
 
@@ -32,13 +31,13 @@ def convert_dim_to_base_cgpm(dim, rng):
         rng=rng)
 
 def rebase_cgpm_row_assignments(Zr):
-    unique_tables = set(Zr.itervalues())
+    unique_tables = set(Zr.values())
     tables_map = {t:i for i, t in enumerate(unique_tables)}
-    tables_new = [(rowid, tables_map[t]) for rowid, t in Zr.iteritems()]
+    tables_new = [(rowid, tables_map[t]) for rowid, t in Zr.items()]
     return sorted(tables_new, key=lambda a: a[1])
 
 def convert_view_to_rowmixture(view, rng):
-    cgpms = [convert_dim_to_base_cgpm(d, rng) for d in view.dims.itervalues()]
+    cgpms = [convert_dim_to_base_cgpm(d, rng) for d in view.dims.values()]
     component_base_cgpms = Product(cgpms, rng=rng)
     cgpm_row_divide = convert_dim_to_base_cgpm(view.crp, rng)
     cgpm_row_mixture = FlexibleRowMixture(cgpm_row_divide, component_base_cgpms,

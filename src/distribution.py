@@ -5,7 +5,6 @@
 
 from .icgpm import CGPM
 
-
 class DistributionCGPM(CGPM):
     """Interface for generative population models representing univariate
     probability distribution.
@@ -34,7 +33,7 @@ class DistributionCGPM(CGPM):
         if rowid in self.data:
             raise ValueError('rowid already exists: %d' % (rowid,))
         assert not inputs
-        assert observation.keys() == self.outputs
+        assert list(observation) == self.outputs
 
     def unobserve(self, rowid):
         if rowid not in self.data:
@@ -44,7 +43,7 @@ class DistributionCGPM(CGPM):
         assert rowid not in self.data
         assert not inputs
         assert not constraints
-        assert targets.keys() == self.outputs
+        assert list(targets) == self.outputs
 
     def simulate(self, rowid, targets, constraints=None, inputs=None, N=None):
         assert not constraints

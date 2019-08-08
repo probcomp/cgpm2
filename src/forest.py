@@ -19,10 +19,10 @@ import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import log_pflip
-
 from .distribution import DistributionCGPM
+
+from .utils import get_prng
+from .utils import log_pflip
 
 
 INF = float('inf')
@@ -63,7 +63,7 @@ class RandomForest(DistributionCGPM):
 
     def observe(self, rowid, observation, inputs=None):
         assert rowid not in self.data
-        assert observation.keys() == self.outputs
+        assert list(observation) == self.outputs
         x = observation[self.outputs[0]]
         y_raw = [inputs.get(i) for i in self.inputs]
         y_dum = self.process_inputs(inputs)
@@ -81,7 +81,7 @@ class RandomForest(DistributionCGPM):
     def logpdf(self, rowid, targets, constraints=None, inputs=None):
         assert rowid not in self.data
         assert not constraints
-        assert targets.keys() == self.outputs
+        assert list(targets) == self.outputs
         x = targets[self.outputs[0]]
         if x not in self.class_to_index:
             return -INF
@@ -104,7 +104,7 @@ class RandomForest(DistributionCGPM):
             y_dum = self.process_inputs(inputs)
             y_dum_probe = np.reshape(y_dum, (1,-1))
             logps = self.regressor.predict_log_proba(y_dum_probe)
-            samples = log_pflip(logps[0], array=self.class_to_index.keys(),
+            samples = log_pflip(logps[0], array=list(self.class_to_index),
                 size=(N or 1), rng=self.rng)
         return dictify_samples(self.outputs[0], samples, N)
 

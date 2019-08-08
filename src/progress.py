@@ -44,5 +44,5 @@ def transition_generic(kernels, N=None, S=None, progress=None):
             continue
         break
     if progress:
-        print '\rCompleted: %d iterations in %f seconds.' % \
-            (iters, time.time()-start)
+        elapsed = time.time() - start
+        print('\rCompleted: %d iterations in %f seconds.' % (iters, elapsed))

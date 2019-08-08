@@ -3,11 +3,10 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from cgpm.utils.general import log_pflip
-
 from .finite_rowmix import FiniteRowMixture
 from .flexible_rowmix import FlexibleRowMixture
 
+from .utils import log_pflip
 
 def transition_rows(cgpm_mixture, rowid, rng):
     """Performs a Gibbs step on the rowid in the given cgpm_mixture."""

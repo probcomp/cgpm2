@@ -5,11 +5,10 @@
 
 import importlib
 
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import get_prng
-
 from .icgpm import CGPM
 
+from .utils import build_cgpm
+from .utils import get_prng
 
 class FlexibleArray(CGPM):
 
@@ -36,7 +35,7 @@ class FlexibleArray(CGPM):
         return cgpm.logpdf(rowid, targets, constraints, inputs)
 
     def logpdf_score(self):
-        return sum(cgpm.logpdf_score() for cgpm in self.cgpms.itervalues())
+        return sum(cgpm.logpdf_score() for cgpm in self.cgpms.values())
 
     def observe(self, rowid, observation, inputs=None):
         i_select = inputs.pop(self.indexer)
@@ -59,7 +58,7 @@ class FlexibleArray(CGPM):
         metadata['indexer'] = self.inputs[0]
         metadata['rowid_to_index'] = self.rowid_to_index.items()
         metadata['cgpms'] = [(i, cgpm.to_metadata())
-            for i, cgpm in self.cgpms.iteritems()]
+            for i, cgpm in self.cgpms.items()]
         metadata['factory'] = ('cgpm2.flexible_array', 'FlexibleArray')
         return metadata
 
@@ -76,7 +75,7 @@ class FlexibleArray(CGPM):
             'FlexibleArray',
             ['outputs=', self.outputs],
             ['inputs=', self.inputs],
-            ['cgpms=', [(i,cgpm.render()) for i,cgpm in self.cgpms.iteritems()]]
+            ['cgpms=', [(i,cgpm.render()) for i,cgpm in self.cgpms.items()]]
         ]
 
     # Internal

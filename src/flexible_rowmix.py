@@ -3,13 +3,12 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import lchain
-
 from .finite_rowmix import FiniteRowMixture
 from .flexible_array import FlexibleArray
 
+from .utils import build_cgpm
+from .utils import get_prng
+from .utils import lchain
 
 class FlexibleRowMixture(FiniteRowMixture):
 

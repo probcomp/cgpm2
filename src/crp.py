@@ -8,13 +8,12 @@ from math import log
 
 from scipy.special import gammaln
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import log_linspace
-from cgpm.utils.general import log_pflip
-from cgpm.utils.general import simulate_many
-
 from .distribution import DistributionCGPM
 
+from .utils import get_prng
+from .utils import log_linspace
+from .utils import log_pflip
+from .utils import simulate_many
 
 class CRP(DistributionCGPM):
 
@@ -58,7 +57,7 @@ class CRP(DistributionCGPM):
         # Do not call DistributionCGPM.logpdf since crp allows observed rowid.
         assert not inputs
         assert not constraints
-        assert targets.keys() == self.outputs
+        assert list(targets) == self.outputs
         x = int(targets[self.outputs[0]])
         if x not in self.support():
             # TODO: Optimize this computation by caching valid tables.

@@ -7,26 +7,25 @@ import itertools
 
 from math import isinf
 
-from cgpm.network.helpers import retrieve_adjacency_list
-from cgpm.network.helpers import retrieve_extraneous_inputs
-from cgpm.network.helpers import retrieve_required_inputs
-from cgpm.network.helpers import retrieve_variable_to_cgpm
-from cgpm.network.helpers import topological_sort
-from cgpm.network.helpers import validate_cgpms
-
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import flatten_cgpms
-from cgpm.utils.general import get_intersection
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import lchain
-from cgpm.utils.general import log_pflip
-from cgpm.utils.general import logmeanexp
-from cgpm.utils.general import merged
-from cgpm.utils.general import mergedl
-from cgpm.utils.general import simulate_many
+from .chain_helpers import retrieve_adjacency_list
+from .chain_helpers import retrieve_extraneous_inputs
+from .chain_helpers import retrieve_required_inputs
+from .chain_helpers import retrieve_variable_to_cgpm
+from .chain_helpers import topological_sort
+from .chain_helpers import validate_cgpms
 
 from .icgpm import CGPM
 
+from .utils import build_cgpm
+from .utils import flatten_cgpms
+from .utils import get_intersection
+from .utils import get_prng
+from .utils import lchain
+from .utils import log_pflip
+from .utils import logmeanexp
+from .utils import merged
+from .utils import mergedl
+from .utils import simulate_many
 
 class Chain(CGPM):
     """Querier for a Composite CGpm."""
@@ -66,7 +65,7 @@ class Chain(CGPM):
         # Generate samples and weights.
         samples, weights = zip(*[
             self.weighted_sample(rowid, targets, constraints, inputs)
-            for _i in xrange(self.accuracy)
+            for _i in range(self.accuracy)
         ])
         # Sample importance resample.
         if all(isinf(l) for l in weights):
@@ -81,13 +80,13 @@ class Chain(CGPM):
         _samples_joint, weights_joint = zip(*[
             self.weighted_sample(
                 rowid, [], merged(targets, constraints), inputs)
-            for _i in xrange(self.accuracy)
+            for _i in range(self.accuracy)
         ])
         logp_joint = logmeanexp(weights_joint)
         # Compute marginal probability.
         _samples_marginal, weights_marginal = zip(*[
             self.weighted_sample(rowid, [], constraints, inputs)
-            for _i in xrange(self.accuracy)
+            for _i in range(self.accuracy)
         ]) if constraints else ({}, [0.])
         if all(isinf(l) for l in weights_marginal):
             raise ValueError('Zero density constraints: %s' % (constraints,))
@@ -135,10 +134,10 @@ class Chain(CGPM):
 
     def invoke_cgpm(self, rowid, cgpm, targets, constraints, inputs):
         cgpm_inputs = {e:x for e,x in
-            itertools.chain(inputs.iteritems(), constraints.iteritems())
+            itertools.chain(inputs.items(), constraints.items())
             if e in cgpm.inputs
         }
-        cgpm_constraints = {e:x for e, x in constraints.iteritems()
+        cgpm_constraints = {e:x for e, x in constraints.items()
             if e in cgpm.outputs
         }
         cgpm_targets = [q for q in targets if q in cgpm.outputs]

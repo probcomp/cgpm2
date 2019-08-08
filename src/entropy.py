@@ -10,7 +10,7 @@ from collections import namedtuple
 
 import numpy
 
-from cgpm.utils.general import merged
+from .utils import merged
 
 DEFAULT_SAMPLES_MONTE_CARLO = 100
 DEFAULT_SAMPLES_MARGINALIZE = 100

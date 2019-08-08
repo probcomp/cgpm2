@@ -5,10 +5,8 @@
 
 import pytest
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crosscat_ensemble import CrossCatEnsemble
-
+from cgpm2.utils import get_prng
 
 def get_crosscat_ensemble(prng):
     ensemble = CrossCatEnsemble(outputs=[1,2], inputs=[],
@@ -99,8 +97,8 @@ def test_simulate_heterogeneous_dimensions():
     assert len(samples) == ensemble.chains
     assert all(len(sample)==2 for sample in samples[:5])
     assert all(len(sample)==1 for sample in samples[5:])
-    assert all(sample.keys()==[1,2] for sample in samples[:5])
-    assert all(sample.keys()==[1] for sample in samples[5:])
+    assert all(list(sample)==[1,2] for sample in samples[:5])
+    assert all(list(sample)==[1] for sample in samples[5:])
 
     samples = ensemble.simulate_heterogeneous(
         rowid=None,

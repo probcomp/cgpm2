@@ -8,12 +8,11 @@ import itertools
 import numpy as np
 import pytest
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crosscat_ensemble import CrossCatEnsemble
 from cgpm2.transition_crosscat import GibbsCrossCat
 from cgpm2.transition_crosscat import validate_crosscat_dependencies
 
+from cgpm2.utils import get_prng
 
 @pytest.mark.xfail(strict=True,
     reason='Outputs must be zero based for dependence constraints.')

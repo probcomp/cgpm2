@@ -11,13 +11,12 @@ import numpy as np
 
 from scipy.special import betaln
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.general import log_linspace
-from cgpm.utils.general import log_pflip
-from cgpm.utils.general import simulate_many
-
 from .distribution import DistributionCGPM
 
+from .utils import get_prng
+from .utils import log_linspace
+from .utils import log_pflip
+from .utils import simulate_many
 
 class Bernoulli(DistributionCGPM):
 

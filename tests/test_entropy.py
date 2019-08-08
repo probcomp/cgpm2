@@ -6,9 +6,8 @@
 import numpy as np
 import pytest
 
-from cgpm.utils.general import get_prng
-
 from cgpm2.crosscat_ensemble import CrossCatEnsemble
+from cgpm2.utils import get_prng
 
 def make_custom_program(N):
     def custom_program(crosscat):

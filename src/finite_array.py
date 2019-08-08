@@ -3,11 +3,10 @@
 # Copyright (c) 2018 MIT Probabilistic Computing Project.
 # Released under Apache 2.0; refer to LICENSE.txt.
 
-from cgpm.utils.general import build_cgpm
-from cgpm.utils.general import get_prng
-
 from .icgpm import CGPM
 
+from .utils import build_cgpm
+from .utils import get_prng
 
 class FiniteArray(CGPM):
 

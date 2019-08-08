@@ -6,9 +6,6 @@
 import numpy as np
 import pytest
 
-from cgpm.utils.general import get_prng
-from cgpm.utils.test import gen_data_table
-
 from cgpm2.categorical import Categorical
 from cgpm2.crp import CRP
 from cgpm2.normal import Normal
@@ -23,6 +20,9 @@ from cgpm2.walks import remove_cgpm
 from cgpm2.transition_views import get_cgpm_view_proposals_existing
 from cgpm2.transition_views import get_cgpm_view_proposals_singleton
 from cgpm2.transition_views import get_dataset
+
+from cgpm2.tests.utils import gen_data_table
+from cgpm2.utils import get_prng
 
 def get_crosscat(prng):
     view0 = FlexibleRowMixture(
