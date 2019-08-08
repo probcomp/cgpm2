@@ -1,0 +1,9 @@
+numba==0.45.1
+numpy==1.16.4
+parallel-map==0.2.1
+pytest==2.8.7
+PyYAML==5.1.2
+scipy==1.2.2
+
+# install from Github
+# crosscat=='0.1.56.post61+g4a05bdd'
