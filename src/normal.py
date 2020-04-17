@@ -9,7 +9,6 @@ from math import lgamma
 from math import log
 from math import pi
 
-import numba
 import numpy as np
 
 from cgpm.utils.general import get_prng
@@ -180,7 +179,6 @@ class Normal(DistributionCGPM):
         return True
 
 
-@numba.jit
 def calc_log_Z(r, s, nu):
     return (
         ((nu + 1.) / 2.) * LOG2
@@ -189,7 +187,6 @@ def calc_log_Z(r, s, nu):
         - (nu/2.) * log(s)
         + lgamma(nu/2.))
 
-@numba.jit
 def posterior_hypers(N, sum_x, sum_x_sq, m, r, s, nu):
     rn = r + float(N)
     nun = nu + float(N)
@@ -199,7 +196,6 @@ def posterior_hypers(N, sum_x, sum_x_sq, m, r, s, nu):
         sn = s
     return mn, rn, sn, nun
 
-@numba.jit
 def calc_predictive_logp(x, N, sum_x, sum_x_sq, m, r, s, nu):
     _mn, rn, sn, nun = posterior_hypers(N, sum_x, sum_x_sq, m, r, s, nu)
     _mm, rm, sm, num = posterior_hypers(N+1, sum_x+x, sum_x_sq+x*x, m, r, s, nu)
@@ -207,7 +203,6 @@ def calc_predictive_logp(x, N, sum_x, sum_x_sq, m, r, s, nu):
     ZM = calc_log_Z(rm, sm, num)
     return -.5 * LOG2PI + ZM - ZN
 
-@numba.jit
 def calc_logpdf_marginal(N, sum_x, sum_x_sq, m, r, s, nu):
     _mn, rn, sn, nun = posterior_hypers(
         N, sum_x, sum_x_sq, m, r, s, nu)
