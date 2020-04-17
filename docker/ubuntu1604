@@ -16,7 +16,7 @@ RUN             apt-get update -qq \
                     python-yaml
 
 RUN             virtualenv --system-site-packages /venv
-RUN             . /venv/bin/activate && pip install numba==0.45.1
+RUN             . /venv/bin/activate && pip install numba
 
 ADD             . /cgpm2
 WORKDIR         /cgpm2
